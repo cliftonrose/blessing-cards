@@ -17,7 +17,7 @@ MSG="${1:-Update blessing cards}"
 # a stale stylesheet for ten minutes after a deploy. Re-stamp ?v= on every
 # publish so each release fetches fresh files immediately.
 STAMP="$(date +%Y%m%d%H%M%S)"
-sed -i -E "s|(assets/(css\|js\|audio)/[a-z-]+\.(css\|js))\?v=[0-9]+|\1?v=${STAMP}|g" index.html gospel.html
+sed -i -E "s|(assets/(css\|js\|audio)/[a-z-]+\.(css\|js))\?v=[0-9]+|\1?v=${STAMP}|g" index.html
 echo "Asset version: ${STAMP}"
 
 git add -A

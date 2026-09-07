@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Jost:wght@300;400;500&display=swap">
-<link rel="stylesheet" href="assets/css/styles.css?v=20260907185059">
+<link rel="stylesheet" href="assets/css/styles.css?v=20260907191226">
 </head>
 <body>
 
@@ -26,7 +26,7 @@
 <div class="aura" aria-hidden="true"></div>
 <div class="vignette" aria-hidden="true"></div>
 
-<div class="shell">
+<div class="shell" id="shell">
 
   <header class="brand">
     <svg class="brand__mark" viewBox="0 0 24 24" aria-hidden="true">
@@ -35,110 +35,264 @@
     <span class="brand__name">Blessing&nbsp;Cards</span>
   </header>
 
-  <main class="stage">
-    <div class="card-scene">
-      <div class="card-float">
-        <div class="card-tilt" id="tilt">
-          <article class="card" id="card" aria-live="polite">
-            <div class="card__sheen" id="sheen" aria-hidden="true"></div>
-            <div class="card__grain" aria-hidden="true"></div>
-            <div class="card__rules" aria-hidden="true"></div>
+  <!-- Two views, one at a time. Swipe either way, or use the controls, to switch. -->
+  <div class="deck" id="deck">
 
-            <div class="card__body">
+    <!-- ============ The blessing card ============ -->
+    <section class="view" id="view-blessing" data-view="blessing" aria-label="A blessing for you">
+      <main class="stage">
+        <div class="card-scene">
+          <div class="card-float">
+            <div class="card-tilt" id="tilt">
+              <article class="card" id="card" aria-live="polite">
+                <div class="card__sheen" id="sheen" aria-hidden="true"></div>
+                <div class="card__grain" aria-hidden="true"></div>
+                <div class="card__rules" aria-hidden="true"></div>
 
-              <svg class="seal" id="seal" viewBox="0 0 64 64" aria-hidden="true">
-                <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.1">
-                  <circle class="seal__ring" cx="32" cy="32" r="21.5"/>
-                  <circle class="seal__ring" cx="32" cy="32" r="16.5"/>
-                  <path class="seal__cross" d="M32 21.5v21M23.5 29h17"/>
-                  <g class="seal__ray" stroke-width="1.3">
-                    <path d="M32 6.5V2.5"/>
-                    <path d="M50.4 13.6 53.2 10.8"/>
-                    <path d="M57.5 32h4"/>
-                    <path d="M50.4 50.4 53.2 53.2"/>
-                    <path d="M32 57.5v4"/>
-                    <path d="M13.6 50.4 10.8 53.2"/>
-                    <path d="M6.5 32h-4"/>
-                    <path d="M13.6 13.6 10.8 10.8"/>
-                  </g>
+                <div class="card__body">
+
+                  <svg class="seal" id="seal" viewBox="0 0 64 64" aria-hidden="true">
+                    <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.1">
+                      <circle class="seal__ring" cx="32" cy="32" r="21.5"/>
+                      <circle class="seal__ring" cx="32" cy="32" r="16.5"/>
+                      <path class="seal__cross" d="M32 21.5v21M23.5 29h17"/>
+                      <g class="seal__ray" stroke-width="1.3">
+                        <path d="M32 6.5V2.5"/>
+                        <path d="M50.4 13.6 53.2 10.8"/>
+                        <path d="M57.5 32h4"/>
+                        <path d="M50.4 50.4 53.2 53.2"/>
+                        <path d="M32 57.5v4"/>
+                        <path d="M13.6 50.4 10.8 53.2"/>
+                        <path d="M6.5 32h-4"/>
+                        <path d="M13.6 13.6 10.8 10.8"/>
+                      </g>
+                    </g>
+                  </svg>
+
+                  <!-- Only this block changes between blessings. The card, seal and
+                       flourish stay put so drawing again never reads as a reload. -->
+                  <div class="card__content" id="content">
+
+                  <p class="card__eyebrow" id="eyebrow">A blessing for you</p>
+
+                  <h1 class="card__affirmation" id="affirmation"></h1>
+
+                  <div class="card__rule" id="rule" aria-hidden="true"></div>
+
+                  <blockquote class="card__verse" id="verse"></blockquote>
+
+                  <cite class="card__ref" id="ref"></cite>
+
+                  <!-- Hidden until the manifest says this blessing has a recording. -->
+                  <button class="listen" id="listen" type="button" hidden
+                          aria-label="Listen to this blessing" aria-pressed="false">
+                    <svg class="listen__ring" viewBox="0 0 48 48" aria-hidden="true">
+                      <circle class="listen__track" cx="24" cy="24" r="22"/>
+                      <circle class="listen__bar" id="listen-bar" cx="24" cy="24" r="22"/>
+                    </svg>
+                    <svg class="listen__glyph" viewBox="0 0 24 24" aria-hidden="true">
+                      <path class="listen__play" d="M9.6 7.4 17 12l-7.4 4.6z"/>
+                      <path class="listen__pause" d="M9.8 7.6v8.8M14.2 7.6v8.8"/>
+                    </svg>
+                  </button>
+
+                  </div><!-- /.card__content -->
+
+                  <svg class="flourish" id="flourish" viewBox="0 0 200 20" aria-hidden="true">
+                    <g fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round">
+                      <path d="M14 10h64"/>
+                      <path d="M122 10h64"/>
+                      <path d="M100 3.5 106.5 10 100 16.5 93.5 10Z"/>
+                      <circle cx="100" cy="10" r="1.6"/>
+                      <circle cx="8" cy="10" r="1.6"/>
+                      <circle cx="192" cy="10" r="1.6"/>
+                    </g>
+                  </svg>
+
+                </div>
+              </article>
+            </div>
+          </div>
+        </div>
+
+        <div class="actions" id="actions">
+          <button class="btn btn--primary" id="btn-new" type="button">
+            <span class="btn__label">Another blessing</span>
+          </button>
+          <button class="btn btn--ghost" id="btn-share" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="btn__icon">
+              <path d="M12 3.5v11M12 3.5 8.4 7.1M12 3.5l3.6 3.6M5.5 12.5v6a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-6"
+                    fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="btn__label">Share</span>
+          </button>
+        </div>
+      </main>
+
+      <footer class="foot" id="foot-blessing">
+        <button class="foot__gospel" type="button" data-goto="gospel">
+          <span>The Good News</span>
+          <svg class="foot__arrow" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12h13M13 6.5 18.5 12 13 17.5" fill="none" stroke="currentColor"
+                  stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
+        <p class="foot__line">Scripture quoted from the King James Version.</p>
+        <p class="foot__line foot__line--dim">Take heart. Then pass it on.</p>
+      </footer>
+    </section>
+
+    <!-- ============ The Good News ============ -->
+    <section class="view view--read" id="view-gospel" data-view="gospel" aria-label="The Good News" hidden>
+      <main class="stage stage--read">
+        <article class="sheet">
+          <div class="card__grain" aria-hidden="true"></div>
+          <div class="card__rules" aria-hidden="true"></div>
+
+          <div class="sheet__body">
+
+            <svg class="seal reveal" viewBox="0 0 64 64" aria-hidden="true">
+              <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.1">
+                <circle cx="32" cy="32" r="21.5"/>
+                <circle cx="32" cy="32" r="16.5"/>
+                <path class="seal__cross" d="M32 21.5v21M23.5 29h17"/>
+                <g stroke-width="1.3">
+                  <path d="M32 6.5V2.5"/>
+                  <path d="M50.4 13.6 53.2 10.8"/>
+                  <path d="M57.5 32h4"/>
+                  <path d="M50.4 50.4 53.2 53.2"/>
+                  <path d="M32 57.5v4"/>
+                  <path d="M13.6 50.4 10.8 53.2"/>
+                  <path d="M6.5 32h-4"/>
+                  <path d="M13.6 13.6 10.8 10.8"/>
                 </g>
-              </svg>
+              </g>
+            </svg>
 
-              <!-- Only this block changes between blessings. The card, seal and
-                   flourish stay put so drawing again never reads as a reload. -->
-              <div class="card__content" id="content">
+            <p class="card__eyebrow reveal">The Good News</p>
 
-              <p class="card__eyebrow" id="eyebrow">A blessing for you</p>
+            <h1 class="sheet__hero reveal">You are deeply loved by God.</h1>
 
-              <h1 class="card__affirmation" id="affirmation"></h1>
-
-              <div class="card__rule" id="rule" aria-hidden="true"></div>
-
-              <blockquote class="card__verse" id="verse"></blockquote>
-
-              <cite class="card__ref" id="ref"></cite>
-
-              <!-- Hidden until the manifest says this blessing has a recording. -->
-              <button class="listen" id="listen" type="button" hidden
-                      aria-label="Listen to this blessing" aria-pressed="false">
+            <!-- Kept at the top: this view runs well past one screen, so a control
+                 below the fold would never be found. Hidden until the manifest says
+                 the narration exists. Nothing plays until it is pressed. -->
+            <div class="listen-block reveal" id="gospel-listen-block" hidden>
+              <button class="listen" id="gospel-listen" type="button"
+                      aria-label="Listen to this page" aria-pressed="false">
                 <svg class="listen__ring" viewBox="0 0 48 48" aria-hidden="true">
                   <circle class="listen__track" cx="24" cy="24" r="22"/>
-                  <circle class="listen__bar" id="listen-bar" cx="24" cy="24" r="22"/>
+                  <circle class="listen__bar" id="gospel-listen-bar" cx="24" cy="24" r="22"/>
                 </svg>
                 <svg class="listen__glyph" viewBox="0 0 24 24" aria-hidden="true">
                   <path class="listen__play" d="M9.6 7.4 17 12l-7.4 4.6z"/>
                   <path class="listen__pause" d="M9.8 7.6v8.8M14.2 7.6v8.8"/>
                 </svg>
               </button>
-
-              </div><!-- /.card__content -->
-
-              <svg class="flourish" id="flourish" viewBox="0 0 200 20" aria-hidden="true">
-                <g fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round">
-                  <path d="M14 10h64"/>
-                  <path d="M122 10h64"/>
-                  <path d="M100 3.5 106.5 10 100 16.5 93.5 10Z"/>
-                  <circle cx="100" cy="10" r="1.6"/>
-                  <circle cx="8" cy="10" r="1.6"/>
-                  <circle cx="192" cy="10" r="1.6"/>
-                </g>
-              </svg>
-
+              <span class="listen-block__caption" aria-hidden="true">
+                <span class="listen-block__cap listen-block__cap--play">Listen</span>
+                <span class="listen-block__cap listen-block__cap--pause">Playing</span>
+              </span>
             </div>
-          </article>
+
+            <div class="card__rule reveal" aria-hidden="true"></div>
+
+            <p class="sheet__text reveal">
+              God created you intentionally and desires a relationship with you but every
+              one of us has sinned and fallen short of His perfect standard. Scripture says,
+            </p>
+
+            <blockquote class="passage reveal">
+              <p class="passage__text">For all have sinned and fallen short of the glory of God</p>
+              <cite class="passage__ref">Romans 3:23</cite>
+            </blockquote>
+
+            <p class="sheet__text reveal">
+              Sin separated us from God and we cannot earn our way back to Him through good
+              works. But God did not leave us without hope because of His incredible love.
+              God sent His Son, Jesus Christ, into the world. Jesus lived without sin,
+              willingly died on the cross for our sins, and rose from the dead. He took the
+              punishment we deserved so that we could be forgiven and reconciled to God.
+            </p>
+
+            <blockquote class="passage reveal">
+              <p class="passage__text">
+                But God shows His love for us in that: while we were still sinners,
+                Christ died for us
+              </p>
+              <cite class="passage__ref">Romans 5:8</cite>
+            </blockquote>
+
+            <p class="sheet__text reveal">
+              Salvation is God’s gift. It isn’t something you have to earn. Turn to Jesus,
+              trust in Him, and receive His grace. Scripture says,
+            </p>
+
+            <blockquote class="passage reveal">
+              <p class="passage__text">Everyone who calls on the name of the Lord will be saved</p>
+              <cite class="passage__ref">Romans 10:13</cite>
+            </blockquote>
+
+            <div class="card__rule reveal" aria-hidden="true"></div>
+
+            <p class="sheet__text sheet__text--close reveal">
+              Whatever brought you to this page today, know this: Jesus loves you. Grace is
+              available, forgiveness is possible. Hope is alive and you can come to Him today.
+            </p>
+
+            <svg class="flourish reveal" viewBox="0 0 200 20" aria-hidden="true">
+              <g fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round">
+                <path d="M14 10h64"/>
+                <path d="M122 10h64"/>
+                <path d="M100 3.5 106.5 10 100 16.5 93.5 10Z"/>
+                <circle cx="100" cy="10" r="1.6"/>
+                <circle cx="8" cy="10" r="1.6"/>
+                <circle cx="192" cy="10" r="1.6"/>
+              </g>
+            </svg>
+
+          </div>
+        </article>
+
+        <div class="actions reveal">
+          <button class="btn btn--primary" type="button" data-goto="blessing">
+            <span class="btn__label">Receive a blessing</span>
+          </button>
+          <button class="btn btn--ghost" id="gospel-share" type="button">
+            <svg viewBox="0 0 24 24" aria-hidden="true" class="btn__icon">
+              <path d="M12 3.5v11M12 3.5 8.4 7.1M12 3.5l3.6 3.6M5.5 12.5v6a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-6"
+                    fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span class="btn__label">Share</span>
+          </button>
         </div>
-      </div>
-    </div>
+      </main>
 
-    <div class="actions" id="actions">
-      <button class="btn btn--primary" id="btn-new" type="button">
-        <span class="btn__label">Another blessing</span>
-      </button>
-      <button class="btn btn--ghost" id="btn-share" type="button">
-        <svg viewBox="0 0 24 24" aria-hidden="true" class="btn__icon">
-          <path d="M12 3.5v11M12 3.5 8.4 7.1M12 3.5l3.6 3.6M5.5 12.5v6a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-6"
-                fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <span class="btn__label">Share</span>
-      </button>
-    </div>
-  </main>
+      <!-- No translation credited here on purpose: these three passages are quoted
+           in modern wording, not the KJV used on the blessing cards. -->
+      <footer class="foot">
+        <p class="foot__line foot__line--dim">Take heart. Then pass it on.</p>
+      </footer>
+    </section>
 
-  <footer class="foot">
-    <a class="foot__gospel" href="gospel.html">The Good News</a>
-    <p class="foot__line">Scripture quoted from the King James Version.</p>
-    <p class="foot__line foot__line--dim">Take heart. Then pass it on.</p>
-  </footer>
+  </div>
+
+  <!-- Which of the two views you are on, and a way between them without swiping. -->
+  <nav class="deck-nav" id="deck-nav" aria-label="Switch view">
+    <button class="deck-dot is-current" type="button" data-goto="blessing" aria-label="A blessing for you"></button>
+    <button class="deck-dot" type="button" data-goto="gospel" aria-label="The Good News"></button>
+  </nav>
 
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
-<script src="assets/js/player.js?v=20260907185059"></script>
-<script src="assets/js/ambient.js?v=20260907185059"></script>
-<script src="assets/js/blessings.js?v=20260907185059"></script>
-<script src="assets/audio/manifest.js?v=20260907185059"></script>
-<script src="assets/js/app.js?v=20260907185059"></script>
+<script src="assets/js/player.js?v=20260907191226"></script>
+<script src="assets/js/ambient.js?v=20260907191226"></script>
+<script src="assets/js/blessings.js?v=20260907191226"></script>
+<script src="assets/audio/manifest.js?v=20260907191226"></script>
+<script src="assets/js/app.js?v=20260907191226"></script>
+<script src="assets/js/gospel.js?v=20260907191226"></script>
+<script src="assets/js/deck.js?v=20260907191226"></script>
 </body>
 </html>

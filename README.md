@@ -14,10 +14,11 @@ Static site — no framework, no runtime dependencies, nothing to install to dep
 
 | File | Role |
 | --- | --- |
-| `index.html` | The blessing card |
-| `gospel.html` | The Good News — a long read on one sheet |
+| `index.html` | Both views: the blessing card and the Good News |
+| `gospel.html` | Redirect only, so old QR codes and links still work |
+| `assets/js/deck.js` | Swipe, the view switch, and the `gospel` parameter |
 | `assets/js/ambient.js` | Shared background: drifting motes, the rAF probe |
-| `assets/js/gospel.js` | Reveals the Good News as you scroll to it |
+| `assets/js/gospel.js` | The Good News view |
 | `assets/js/player.js` | Shared listen button: one audio element, ring, fade |
 | `assets/css/styles.css` | The look — parchment card, gold rules, paper grain, dark room |
 | `assets/js/blessings.js` | The content — 48 blessings (affirmation + verse + reference) |
@@ -34,6 +35,7 @@ Static site — no framework, no runtime dependencies, nothing to install to dep
 | `/` | A random blessing on every scan |
 | `/?b=<id>` | Pins one specific blessing — **give each card design its own QR** |
 | `/?daily` | Everyone gets the same blessing for the calendar day |
+| `/?gospel=true` | Opens on the Good News instead of a blessing |
 
 `<id>` values are the `id` fields in `assets/js/blessings.js`, e.g.
 `/?b=wonderfully-made`. An unknown id quietly falls back to a random blessing.
@@ -63,12 +65,23 @@ Scripture is quoted from the **King James Version** (public domain). The
 
 ## The Good News
 
-`gospel.html` is a longer read set on a single parchment sheet, reached from the
-link in the blessing page footer or straight from its own QR code:
+A longer read on a single parchment sheet, living on the same page as the card.
+**Swipe either way to move between the two**, or use the dots, the footer link, or
+the button on the Good News itself. `?gospel=true` opens straight onto it, which is
+what a QR code for the Good News should point at:
 
 ```
-https://cliftonrose.github.io/blessing-cards/gospel.html
+https://cliftonrose.github.io/blessing-cards/?gospel=true
 ```
+
+The URL is kept in step as you switch, so Share and a reload both return whatever
+is actually on screen. `gospel.html` still exists purely as a redirect, so anything
+already printed or shared keeps working.
+
+Swipes are read on release rather than during the drag: the Good News scrolls
+vertically and well past one screen, and calling preventDefault mid-gesture risks
+eating that scroll. A swipe counts if it travels 55px, is clearly more sideways
+than vertical, and takes under 900ms.
 
 Body copy is set upright rather than italic — italic serif is lovely for a single
 verse on a card and punishing across four paragraphs. The three passages are set

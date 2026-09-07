@@ -1,15 +1,25 @@
 /* ============================================================
-   The Good News — a long read, revealed as you come to it.
+   The Good News view — revealed as you come to it.
+   Shares the page with the blessing card; the deck decides which
+   one is on screen, and calls activate()/deactivate() here.
    ============================================================ */
 (function () {
   'use strict';
 
+  var view = document.getElementById('view-gospel');
+  if (!view) return;
+
   var hasAnime = typeof window.anime === 'function';
   var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var blocks = Array.prototype.slice.call(document.querySelectorAll('.reveal'));
+  var blocks = Array.prototype.slice.call(view.querySelectorAll('.reveal'));
   var toastEl = document.getElementById('toast');
 
-  /* This page is mostly words. If anything at all goes wrong with the motion,
+  var frameLoopReady = false;  /* the rAF probe has come back positive */
+  var onScreen = false;        /* the deck has this view showing */
+  var started = false;
+  var player = null;
+
+  /* This view is mostly words. If anything at all goes wrong with the motion,
      the words must still be on the page. */
   function showAll() {
     blocks.forEach(function (b) {
@@ -29,14 +39,18 @@
   }
 
   function initShare() {
-    var btn = document.getElementById('btn-share');
+    var btn = document.getElementById('gospel-share');
     if (!btn) return;
 
     btn.addEventListener('click', function () {
+      var url = new URL(window.location.href);
+      url.searchParams.delete('b');
+      url.searchParams.set('gospel', 'true');
+
       var payload = {
         title: 'The Good News',
         text: 'Jesus loves you. Grace is available, forgiveness is possible. Hope is alive.',
-        url: window.location.href.split('#')[0]
+        url: url.toString()
       };
 
       if (navigator.share) {
@@ -61,6 +75,28 @@
     }
   }
 
+  /* One narration for the whole view, hidden unless it has been recorded. */
+  function initListen() {
+    var button = document.getElementById('gospel-listen');
+    var block = document.getElementById('gospel-listen-block');
+    var audio = window.BLESSING_AUDIO;
+    if (!button || !block || !audio || !audio.gospel || !window.createListenPlayer) return;
+
+    player = window.createListenPlayer({
+      button: button,
+      bar: document.getElementById('gospel-listen-bar'),
+      toast: toast,
+      playLabel: 'Listen to this page',
+      pauseLabel: 'Pause'
+    });
+    if (!player) return;
+
+    block.hidden = false;
+    button.addEventListener('click', function () {
+      player.toggle(audio.dir + 'gospel' + audio.ext, 'gospel');
+    });
+  }
+
   function reveal(el, delay) {
     window.anime({
       targets: el,
@@ -73,6 +109,9 @@
   }
 
   function start() {
+    if (started) return;
+    started = true;
+
     var anime = window.anime;
     anime.set(blocks, { opacity: 0, translateY: 18 });
 
@@ -95,8 +134,8 @@
 
     blocks.forEach(function (b) { io.observe(b); });
 
-    /* Backstop: anything still hidden after a few seconds gets shown outright,
-       so a missed observer callback can never leave the page blank. */
+    /* Backstop: anything still hidden a few seconds after this view opened gets
+       shown outright, so a missed observer callback can never leave it blank. */
     setTimeout(function () {
       blocks.forEach(function (b) {
         if (parseFloat(getComputedStyle(b).opacity) < 0.05) {
@@ -108,30 +147,25 @@
     }, 6000);
   }
 
-  /* One narration for the whole page, hidden unless it has been recorded. */
-  function initListen() {
-    var button = document.getElementById('listen');
-    var block = document.getElementById('listen-block');
-    var audio = window.BLESSING_AUDIO;
-    if (!button || !block || !audio || !audio.gospel || !window.createListenPlayer) return;
-
-    var player = window.createListenPlayer({
-      button: button,
-      bar: document.getElementById('listen-bar'),
-      toast: toast,
-      playLabel: 'Listen to this page',
-      pauseLabel: 'Pause'
-    });
-    if (!player) return;
-
-    block.hidden = false;
-    button.addEventListener('click', function () {
-      player.toggle(audio.dir + 'gospel' + audio.ext, 'gospel');
-    });
+  /* The reveal waits for both a working frame loop and the view actually being
+     on screen — otherwise it would play to an empty room while the reader is
+     still looking at the blessing card. */
+  function maybeStart() {
+    if (!frameLoopReady || !onScreen) return;
+    start();
   }
 
+  window.GospelView = {
+    activate: function () {
+      onScreen = true;
+      maybeStart();
+    },
+    deactivate: function () {
+      if (player) player.stop();
+    }
+  };
+
   function boot() {
-    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
     initShare();
     initListen();
 
@@ -145,8 +179,8 @@
         showAll();
         return;
       }
-      window.Ambient.motes(document.getElementById('motes'));
-      start();
+      frameLoopReady = true;
+      maybeStart();
     });
   }
 

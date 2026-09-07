@@ -37,7 +37,7 @@
     flourish:    document.getElementById('flourish'),
     brand:       document.querySelector('.brand'),
     actions:     document.getElementById('actions'),
-    foot:        document.querySelector('.foot'),
+    foot:        document.querySelector('#view-blessing .foot'),
     btnNew:      document.getElementById('btn-new'),
     btnShare:    document.getElementById('btn-share'),
     listen:      document.getElementById('listen'),
@@ -54,6 +54,9 @@
 
   var current = null;
   var busy = false;
+  var fontsReady = false;   /* webfonts have settled (or we stopped waiting) */
+  var onScreen = false;     /* the deck has this view showing */
+  var revealed = false;
   /* Flipped false if requestAnimationFrame turns out not to run (see rafAlive). */
   var motionLive = animated;
   var hue = { h: 42, s: 62 };
@@ -173,35 +176,37 @@
      because the longest passage wraps to a different number of lines at every
      width. Re-run on resize and once webfonts have settled, since both change
      the answer. */
+  /* Measured on the real card rather than a detached copy. A copy parked on the
+     body lays out in a different context and came back about 15px short, which
+     left the page overflowing by exactly that much. Every blessing is swapped
+     through, measured and put back inside one task, so the browser never paints
+     an intermediate state and none of it is visible. */
   function tallestCard() {
-    var width = el.card.getBoundingClientRect().width;
-    if (!width) return 0;
+    if (!el.card.getBoundingClientRect().width) return 0;
 
-    var clone = el.card.cloneNode(true);
-    clone.removeAttribute('id');
-    clone.style.cssText =
-      'position:absolute;left:-10000px;top:0;visibility:hidden;pointer-events:none;' +
-      'opacity:1;transform:none;min-height:0;width:' + width + 'px';
+    var keptAff = el.affirmation.innerHTML;
+    var keptVerse = el.verse.innerHTML;
+    var keptMin = el.card.style.minHeight;
+    var keptHidden = el.listen.hidden;
 
-    var aff = clone.querySelector('.card__affirmation');
-    var verse = clone.querySelector('.card__verse');
-    var listen = clone.querySelector('.listen');
-    /* Reserve room for the button even on blessings that lack a recording,
-       so the height does not depend on which files exist. */
-    if (listen) listen.hidden = false;
-    if (!aff || !verse) return 0;
-
-    document.body.appendChild(clone);
+    el.card.style.minHeight = '0px';
+    /* Reserve room for the button even on blessings that lack a recording, so
+       the height never depends on which files happen to exist. */
+    el.listen.hidden = false;
 
     var max = 0;
     for (var i = 0; i < DATA.length; i++) {
-      aff.innerHTML = maskedWords(DATA[i].affirmation);
-      verse.innerHTML = plainWords(DATA[i].verse);
-      var h = clone.offsetHeight;
+      el.affirmation.innerHTML = maskedWords(DATA[i].affirmation);
+      el.verse.innerHTML = plainWords(DATA[i].verse);
+      var h = el.card.offsetHeight;
       if (h > max) max = h;
     }
 
-    document.body.removeChild(clone);
+    el.affirmation.innerHTML = keptAff;
+    el.verse.innerHTML = keptVerse;
+    el.listen.hidden = keptHidden;
+    el.card.style.minHeight = keptMin;
+
     return max;
   }
 
@@ -217,14 +222,20 @@
     var stage = document.querySelector('.stage');
     if (!shell || !stage) return 0;
 
+    var view = document.getElementById('view-blessing');
+    var nav = document.getElementById('deck-nav');
     var s = getComputedStyle(shell);
     var chrome =
       parseFloat(s.paddingTop) + parseFloat(s.paddingBottom) +
+      /* shell: brand -> deck -> nav */
       (parseFloat(s.rowGap) || 0) * 2 +
+      /* view: stage -> footer */
+      (view ? (parseFloat(getComputedStyle(view).rowGap) || 0) : 0) +
       (parseFloat(getComputedStyle(stage).rowGap) || 0) +
       el.brand.offsetHeight +
       el.actions.offsetHeight +
-      el.foot.offsetHeight;
+      el.foot.offsetHeight +
+      (nav ? nav.offsetHeight : 0);
 
     return window.innerHeight - chrome - 8; /* a hair of breathing room */
   }
@@ -288,6 +299,24 @@
     }
 
     el.card.style.minHeight = tallest + 'px';
+
+    /* Everything above works from measurements of a detached copy, and those
+       can land a little under what the live card actually renders. Rather than
+       trust the arithmetic, check the page it produced and give back a little
+       more until nothing hangs below the fold. */
+    var scaleNow = parseFloat(el.root.style.getPropertyValue('--card-scale')) || 1;
+    for (var pass = 0; pass < 4; pass++) {
+      var over = document.documentElement.scrollHeight - window.innerHeight;
+      if (over <= 0 || scaleNow <= MIN_CARD_SCALE) break;
+
+      scaleNow = Math.max(MIN_CARD_SCALE, scaleNow - 0.03);
+      setCardScale(scaleNow);
+      el.card.style.minHeight = '';
+      var settled = tallestCard();
+      if (!settled) break;
+      el.card.style.minHeight = settled + 'px';
+    }
+
     fittedWidth = w;
     fittedHeight = vh;
   }
@@ -675,6 +704,28 @@
     });
   }
 
+  /* The first measurement can land before the serif does, and the card is then
+     held at the fallback's smaller height for good. document.fonts.ready is not
+     enough on its own — it resolves early when nothing happens to be loading at
+     the moment it is asked — so the timers are what this actually leans on. They
+     fire whether or not the frame loop is running, which the font events and the
+     resize observer do not. */
+  function watchFonts() {
+    var refit = function () {
+      fittedWidth = 0;
+      fitCard();
+    };
+
+    if (document.fonts) {
+      if (document.fonts.ready) document.fonts.ready.then(refit);
+      if (document.fonts.addEventListener) {
+        document.fonts.addEventListener('loadingdone', refit);
+      }
+    }
+    setTimeout(refit, 1800);
+    setTimeout(refit, 4000);
+  }
+
   function boot() {
     /* A scan should always land at the top of the card, never on a restored
        scroll position from a previous visit. */
@@ -687,6 +738,7 @@
     setAura(start.theme, 0);
 
     initListen();
+    watchFonts();
     el.btnNew.addEventListener('click', drawNext);
     el.btnShare.addEventListener('click', onShare);
 
@@ -701,6 +753,7 @@
     if (!animated) {
       watchCardWidth();
       showInstant();
+      revealed = true;
       return;
     }
 
@@ -709,6 +762,7 @@
         motionLive = false;
         watchCardWidth();
         showInstant();
+        revealed = true;
         return;
       }
 
@@ -716,24 +770,49 @@
       initTilt();
       watchCardWidth();
 
+
       /* Hold the reveal until the serif has loaded, so words don't reflow
          mid-animation — but never wait longer than 1.4s for it. */
       var fonts = (document.fonts && document.fonts.ready)
         ? Promise.race([document.fonts.ready, delay(1400)])
         : delay(0);
 
-      var run = fonts.then(function () {
-        /* Remeasure once webfonts land: metrics shift, and so does the answer. */
-        fittedWidth = 0;
-        fitCard();
-        chromeIn();
-        return revealCard();
+      fonts.then(function () {
+        fontsReady = true;
+        maybeReveal();
       });
-
-      run.catch(showInstant);
-      withWatchdog(run, 8000);
     });
   }
+
+  /* The card assembles the first time it is actually looked at. Someone landing
+     on ?gospel=true and swiping across still sees it build, rather than finding
+     it already sitting there because the timeline played to an empty room. */
+  function maybeReveal() {
+    if (revealed || !fontsReady || !onScreen) return;
+    revealed = true;
+
+    /* Remeasure once webfonts land: metrics shift, and so does the answer. */
+    fittedWidth = 0;
+    fitCard();
+    chromeIn();
+
+    var run = revealCard();
+    run.catch(showInstant);
+    withWatchdog(run, 8000);
+  }
+
+  window.BlessingView = {
+    activate: function () {
+      onScreen = true;
+      /* Width goes from zero to real when the view is shown, so remeasure. */
+      fitCard();
+      setAura(current ? current.theme : 'identity', 0);
+      maybeReveal();
+    },
+    deactivate: function () {
+      stopAudio();
+    }
+  };
 
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', boot);

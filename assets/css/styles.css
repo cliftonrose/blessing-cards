@@ -413,6 +413,77 @@ body {
 /* ---------- The Good News: a long read on one sheet ---------- */
 
 /* The blessing page holds one screen; this one is meant to be scrolled. */
+/* ---------- The deck ---------- */
+
+.deck {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.view {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  width: 100%;
+  /* animated by deck.js; kept off the compositor the rest of the time */
+  will-change: opacity, transform;
+}
+
+.view[hidden] { display: none; }
+
+/* The Good News runs past one screen, so it sits from the top and scrolls
+   rather than centring what will not fit anyway. */
+.view--read { justify-content: flex-start; }
+
+.deck-nav {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.15rem 0;
+}
+
+.deck-dot {
+  width: 0.42rem;
+  height: 0.42rem;
+  padding: 0;
+  border: 1px solid var(--gold-dim);
+  border-radius: 50%;
+  background: transparent;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: background 300ms var(--ease-out), border-color 300ms var(--ease-out),
+              transform 300ms var(--ease-out);
+}
+
+/* A tap target that does not force the dots apart visually. */
+.deck-dot::before {
+  content: '';
+  position: absolute;
+  width: 2.6rem;
+  height: 2.6rem;
+  transform: translate(-50%, -50%);
+  margin-left: 0.21rem;
+  margin-top: 0.21rem;
+}
+
+.deck-dot { position: relative; }
+
+.deck-dot.is-current {
+  background: var(--gold);
+  border-color: var(--gold);
+  transform: scale(1.15);
+}
+
+.deck-dot:focus-visible {
+  outline: 2px solid var(--gold-bright);
+  outline-offset: 3px;
+}
+
 .shell--read { justify-content: flex-start; }
 
 .stage--read {
@@ -527,8 +598,6 @@ body {
 .shell--read .foot,
 .shell--read .brand { opacity: 1; }
 
-/* Elements animated in by gospel.js start hidden. */
-.page-gospel .reveal { opacity: 0; }
 
 /* ---------- Actions ---------- */
 
@@ -676,8 +745,10 @@ body {
 /* Short screens: reclaim height from the furniture around the card first, so
    the card's own type has to give up as little as possible. */
 @media (max-height: 46rem) {
+  .deck-nav { padding: 0; }
+
   .shell {
-    gap: 0.75rem;
+    gap: 0.55rem;
     padding:
       calc(0.9rem + env(safe-area-inset-top)) 1.15rem
       calc(0.9rem + env(safe-area-inset-bottom));
@@ -710,7 +781,17 @@ body {
 /* Sits in the footer so the card's own height calculation, which sums the
    furniture around it, accounts for this without any extra bookkeeping. */
 .foot__gospel {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding-left: 0;
+  padding-right: 0;
+  border-top: 0;
+  border-left: 0;
+  border-right: 0;
+  background: transparent;
+  font-family: inherit;
+  cursor: pointer;
   margin-bottom: 0.6rem;
   padding-bottom: 0.2rem;
   border-bottom: 1px solid var(--gold-dim);
@@ -763,3 +844,17 @@ body {
 
 .listen-block .listen.is-playing ~ .listen-block__caption .listen-block__cap--play { display: none; }
 .listen-block .listen.is-playing ~ .listen-block__caption .listen-block__cap--pause { display: inline; }
+
+/* Arrow on the link through to the Good News. */
+.foot__arrow {
+  width: 0.85rem;
+  height: 0.85rem;
+  flex: none;
+  transition: transform 320ms var(--ease-out);
+}
+
+.foot__gospel:hover .foot__arrow { transform: translateX(3px); }
+
+/* Both views share the page, so the reveal state has to be scoped to the one
+   that uses it rather than keyed off a body class. */
+#view-gospel .reveal { opacity: 0; }
