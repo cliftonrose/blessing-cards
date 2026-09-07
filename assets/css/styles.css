@@ -410,6 +410,126 @@ body {
   color: var(--gold-dim);
 }
 
+/* ---------- The Good News: a long read on one sheet ---------- */
+
+/* The blessing page holds one screen; this one is meant to be scrolled. */
+.shell--read { justify-content: flex-start; }
+
+.stage--read {
+  flex: 0 0 auto;
+  justify-content: flex-start;
+  gap: 1.6rem;
+}
+
+.brand__link {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.brand__link:hover .brand__name { color: var(--gold-bright); }
+
+.sheet {
+  position: relative;
+  width: min(clamp(19rem, 92vw, 38rem), 92vw);
+  overflow: hidden;
+  border-radius: 3px;
+  background:
+    linear-gradient(168deg, var(--parchment-1) 0%, var(--parchment-2) 58%, var(--parchment-3) 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.55) inset,
+    0 0 0 1px rgba(120, 95, 45, 0.16),
+    0 2px 5px rgba(0, 0, 0, 0.35),
+    0 18px 45px rgba(0, 0, 0, 0.5),
+    0 42px 90px -30px hsl(var(--aura-h) 60% 40% / 0.42);
+}
+
+.sheet__body {
+  position: relative;
+  z-index: 2;
+  padding: clamp(2.4rem, 8vw, 3.6rem) clamp(1.5rem, 7vw, 3.25rem) clamp(2rem, 6vw, 2.9rem);
+  text-align: center;
+}
+
+.sheet__hero {
+  margin: 0;
+  font-family: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(1.85rem, 7.2vw, 2.7rem);
+  line-height: 1.14;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+/* Body copy is set upright — italic serif is lovely for a single verse on a
+   card and punishing across four paragraphs. */
+.sheet__text {
+  margin: 0 0 clamp(1.15rem, 4vw, 1.5rem);
+  font-family: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(1.09rem, 4.1vw, 1.3rem);
+  line-height: 1.66;
+  color: var(--ink-soft);
+  text-align: left;
+  text-wrap: pretty;
+}
+
+.sheet__text:last-of-type { margin-bottom: 0; }
+
+.sheet__text--close {
+  text-align: center;
+  color: var(--ink);
+}
+
+/* Scripture, set apart from the prose around it. */
+.passage {
+  position: relative;
+  margin: 0 0 clamp(1.15rem, 4vw, 1.5rem);
+  padding: 0.15rem 0 0.15rem clamp(0.9rem, 3.5vw, 1.25rem);
+  border-left: 1px solid var(--gold-dim);
+  text-align: left;
+}
+
+.passage__text {
+  margin: 0;
+  font-family: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
+  font-style: italic;
+  font-weight: 300;
+  font-size: clamp(1.09rem, 4.1vw, 1.3rem);
+  line-height: 1.58;
+  color: var(--ink);
+  text-wrap: pretty;
+}
+
+.passage__ref {
+  display: block;
+  margin-top: 0.55rem;
+  font-family: 'Jost', ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.6rem;
+  font-style: normal;
+  letter-spacing: 0.22em;
+  text-indent: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+/* On this page the rule is a section break rather than a divider under a line. */
+.shell--read .card__rule {
+  transform: none;
+  margin: clamp(1.5rem, 5vw, 2rem) auto clamp(1.5rem, 5vw, 2rem);
+}
+
+.shell--read .card__eyebrow,
+.shell--read .card__rule,
+.shell--read .actions,
+.shell--read .foot,
+.shell--read .brand { opacity: 1; }
+
+/* Elements animated in by gospel.js start hidden. */
+.page-gospel .reveal { opacity: 0; }
+
 /* ---------- Actions ---------- */
 
 .actions {
@@ -439,6 +559,7 @@ body {
   letter-spacing: 0.2em;
   text-indent: 0.2em;
   text-transform: uppercase;
+  text-decoration: none; /* .btn is used on <a> as well as <button> */
   cursor: pointer;
   isolation: isolate; /* keeps ::before's z-index:-1 inside the button */
   -webkit-tap-highlight-color: transparent;
@@ -582,4 +703,33 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .card-float { animation: none; }
   * { transition-duration: 1ms !important; }
+}
+
+/* ---------- Link through to the Good News ---------- */
+
+/* Sits in the footer so the card's own height calculation, which sums the
+   furniture around it, accounts for this without any extra bookkeeping. */
+.foot__gospel {
+  display: inline-block;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid var(--gold-dim);
+  color: var(--gold-bright);
+  font-size: 0.66rem;
+  font-weight: 400;
+  letter-spacing: 0.24em;
+  text-indent: 0.24em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: color 300ms var(--ease-out), border-color 300ms var(--ease-out);
+}
+
+.foot__gospel:hover {
+  color: #f2dfae;
+  border-color: var(--gold-bright);
+}
+
+.foot__gospel:focus-visible {
+  outline: 2px solid var(--gold-bright);
+  outline-offset: 3px;
 }

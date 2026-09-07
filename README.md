@@ -14,7 +14,10 @@ Static site — no framework, no runtime dependencies, nothing to install to dep
 
 | File | Role |
 | --- | --- |
-| `index.html` | Structure: the card, the seal, the flourish, the controls |
+| `index.html` | The blessing card |
+| `gospel.html` | The Good News — a long read on one sheet |
+| `assets/js/ambient.js` | Shared background: drifting motes, the rAF probe |
+| `assets/js/gospel.js` | Reveals the Good News as you scroll to it |
 | `assets/css/styles.css` | The look — parchment card, gold rules, paper grain, dark room |
 | `assets/js/blessings.js` | The content — 48 blessings (affirmation + verse + reference) |
 | `assets/js/app.js` | Selection, motion, playback, sharing |
@@ -56,6 +59,27 @@ Each maps to an ambient hue in `THEMES` at the top of `app.js`.
 
 Scripture is quoted from the **King James Version** (public domain). The
 `affirmation` lines are original plain-language restatements, not quotations.
+
+## The Good News
+
+`gospel.html` is a longer read set on a single parchment sheet, reached from the
+link in the blessing page footer or straight from its own QR code:
+
+```
+https://cliftonrose.github.io/blessing-cards/gospel.html
+```
+
+Body copy is set upright rather than italic — italic serif is lovely for a single
+verse on a card and punishing across four paragraphs. The three passages are set
+apart with a gold rule so they read as scripture rather than prose.
+
+**The passages here are quoted in modern wording, not the KJV used on the cards**,
+so the page deliberately credits no translation. Either give it the right
+attribution or switch the wording to KJV before this goes out widely.
+
+Paragraphs fade up as they come into view, with the same guarantees as the card:
+reduced motion, a missing anime.js, a dead `requestAnimationFrame` or a missed
+observer callback all fall back to showing the text outright.
 
 ## Spoken blessings
 
