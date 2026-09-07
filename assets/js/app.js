@@ -1,0 +1,618 @@
+/* ============================================================
+   Blessing Cards — presentation & motion
+   ============================================================ */
+(function () {
+  'use strict';
+
+  var DATA = window.BLESSINGS || [];
+  if (!DATA.length) return;
+
+  var hasAnime = typeof window.anime === 'function';
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var animated = hasAnime && !reduced;
+
+  /* Ambient hue per theme — the room changes colour with the blessing. */
+  var THEMES = {
+    identity:  { h: 42,  s: 62 },
+    hope:      { h: 268, s: 46 },
+    strength:  { h: 24,  s: 64 },
+    peace:     { h: 196, s: 48 },
+    love:      { h: 348, s: 50 },
+    provision: { h: 140, s: 38 },
+    guidance:  { h: 222, s: 52 },
+    joy:       { h: 50,  s: 70 }
+  };
+
+  var el = {
+    root:        document.documentElement,
+    card:        document.getElementById('card'),
+    tilt:        document.getElementById('tilt'),
+    sheen:       document.getElementById('sheen'),
+    seal:        document.getElementById('seal'),
+    eyebrow:     document.getElementById('eyebrow'),
+    affirmation: document.getElementById('affirmation'),
+    rule:        document.getElementById('rule'),
+    verse:       document.getElementById('verse'),
+    ref:         document.getElementById('ref'),
+    flourish:    document.getElementById('flourish'),
+    brand:       document.querySelector('.brand'),
+    actions:     document.getElementById('actions'),
+    foot:        document.querySelector('.foot'),
+    btnNew:      document.getElementById('btn-new'),
+    btnShare:    document.getElementById('btn-share'),
+    toast:       document.getElementById('toast')
+  };
+
+  var current = null;
+  var busy = false;
+  /* Flipped false if requestAnimationFrame turns out not to run (see rafAlive). */
+  var motionLive = animated;
+  var hue = { h: 42, s: 62 };
+
+  /* ---------- helpers ---------- */
+
+  function esc(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  /* Each word gets a clipping wrapper so it can rise out of a mask. */
+  function maskedWords(text) {
+    return text.split(/\s+/).map(function (w) {
+      return '<span class="w"><span class="wi">' + esc(w) + '</span></span>';
+    }).join(' ');
+  }
+
+  function plainWords(text) {
+    return text.split(/\s+/).map(function (w) {
+      return '<span class="w">' + esc(w) + '</span>';
+    }).join(' ');
+  }
+
+  function delay(ms) {
+    return new Promise(function (r) { setTimeout(r, ms); });
+  }
+
+  /* The card starts invisible so it can be revealed. If requestAnimationFrame
+     never fires — backgrounded tab, throttled webview, an embedded browser that
+     doesn't drive a frame loop — nothing would ever paint it. Probe first, and
+     fall back to showing everything outright. */
+  function rafAlive(timeout) {
+    return new Promise(function (resolve) {
+      var settled = false;
+      function done(ok) { if (!settled) { settled = true; resolve(ok); } }
+      requestAnimationFrame(function () { done(true); });
+      setTimeout(function () { done(false); }, timeout);
+    });
+  }
+
+  /* Backstop: if a reveal hasn't finished in time, force the finished state. */
+  function withWatchdog(promise, ms) {
+    var settled = false;
+    function mark() { settled = true; }
+    promise.then(mark, mark);
+    setTimeout(function () {
+      if (settled) return;
+      showInstant();
+      busy = false;
+      el.btnNew.disabled = false;
+    }, ms);
+    return promise;
+  }
+
+  /* ---------- selection ---------- */
+
+  function dayIndex() {
+    var n = new Date();
+    var days = Math.floor(Date.UTC(n.getFullYear(), n.getMonth(), n.getDate()) / 86400000);
+    return ((days % DATA.length) + DATA.length) % DATA.length;
+  }
+
+  function randomOther(previous) {
+    if (DATA.length === 1) return DATA[0];
+    var pick;
+    do { pick = DATA[Math.floor(Math.random() * DATA.length)]; }
+    while (previous && pick.id === previous.id);
+    return pick;
+  }
+
+  /* ?b=<id> pins one blessing (one QR per card design).
+     ?daily  gives everyone the same blessing for the calendar day. */
+  function fromQuery() {
+    var p = new URLSearchParams(window.location.search);
+    var id = p.get('b') || p.get('id');
+    if (id) {
+      var found = DATA.filter(function (x) { return x.id === id; })[0];
+      if (found) return { blessing: found, label: 'A blessing for you' };
+    }
+    if (p.has('daily')) {
+      return { blessing: DATA[dayIndex()], label: 'Today’s blessing' };
+    }
+    return null;
+  }
+
+  /* ---------- render ---------- */
+
+  function render(b, label) {
+    current = b;
+    el.eyebrow.textContent = label || 'A blessing for you';
+    el.affirmation.innerHTML = maskedWords(b.affirmation);
+    el.verse.innerHTML = plainWords(b.verse);
+    el.ref.textContent = b.ref;
+    el.card.setAttribute('data-theme', b.theme);
+  }
+
+  function setAura(theme, duration) {
+    var t = THEMES[theme] || THEMES.identity;
+    if (!motionLive || !duration) {
+      hue.h = t.h; hue.s = t.s;
+      applyAura();
+      return;
+    }
+    /* Take the short way round the colour wheel. */
+    var target = t.h;
+    if (Math.abs(target - hue.h) > 180) target += (hue.h > target ? 360 : -360);
+    window.anime({
+      targets: hue,
+      h: target,
+      s: t.s,
+      duration: duration,
+      easing: 'easeInOutQuad',
+      update: applyAura,
+      complete: function () { hue.h = ((t.h % 360) + 360) % 360; }
+    });
+  }
+
+  function applyAura() {
+    el.root.style.setProperty('--aura-h', (((hue.h % 360) + 360) % 360).toFixed(1));
+    el.root.style.setProperty('--aura-s', hue.s.toFixed(1) + '%');
+  }
+
+  /* ---------- motion ---------- */
+
+  function showInstant() {
+    /* Drop any in-flight animation so a late tick can't undo this. */
+    if (hasAnime) {
+      window.anime.remove([
+        el.card, el.eyebrow, el.ref, el.rule, el.flourish, el.sheen,
+        el.brand, el.actions, el.foot
+      ]);
+      window.anime.remove('#affirmation .wi');
+      window.anime.remove('#verse .w');
+      window.anime.remove('#seal circle, #seal path');
+    }
+
+    [el.card, el.eyebrow, el.ref, el.brand, el.actions, el.foot].forEach(function (n) {
+      n.style.opacity = 1;
+      n.style.transform = 'none';
+    });
+    el.sheen.style.opacity = 0;
+    el.rule.style.transform = 'scaleX(1)';
+    Array.prototype.forEach.call(
+      el.card.querySelectorAll('.wi, .w'),
+      function (n) { n.style.opacity = 1; n.style.transform = 'none'; }
+    );
+    Array.prototype.forEach.call(
+      el.card.querySelectorAll('#seal path, #seal circle, #flourish path, #flourish circle'),
+      function (n) { n.style.strokeDasharray = 'none'; n.style.strokeDashoffset = 0; n.style.opacity = 1; }
+    );
+    el.flourish.style.opacity = 1;
+    el.seal.style.opacity = 1;
+  }
+
+  function revealCard(opts) {
+    var anime = window.anime;
+    var first = opts && opts.first;
+
+    anime.set(el.card, { opacity: 0, translateY: 30, scale: 0.94, rotateX: 8 });
+    anime.set('#affirmation .wi', { translateY: '115%' });
+    anime.set('#verse .w', { opacity: 0, translateY: 12 });
+    anime.set([el.eyebrow, el.ref], { opacity: 0 });
+    anime.set(el.rule, { scaleX: 0 });
+    anime.set(el.flourish, { opacity: 0 });
+    anime.set(el.sheen, { opacity: 0, translateX: '-140%', skewX: -18 });
+
+    var tl = anime.timeline({ easing: 'easeOutExpo' });
+
+    tl.add({
+      targets: el.card,
+      opacity: [0, 1],
+      translateY: [30, 0],
+      scale: [0.94, 1],
+      rotateX: [8, 0],
+      duration: first ? 1300 : 900
+    });
+
+    if (first) {
+      tl.add({
+        targets: '#seal circle, #seal path',
+        strokeDashoffset: [anime.setDashoffset, 0],
+        opacity: [0, 1],
+        duration: 1100,
+        delay: anime.stagger(55),
+        easing: 'easeInOutSine'
+      }, '-=1050');
+    }
+
+    tl.add({
+      targets: el.eyebrow,
+      opacity: [0, 1],
+      translateY: [10, 0],
+      duration: 800
+    }, first ? '-=750' : '-=650');
+
+    tl.add({
+      targets: '#affirmation .wi',
+      translateY: ['115%', '0%'],
+      duration: 1050,
+      delay: anime.stagger(52)
+    }, '-=620');
+
+    tl.add({
+      targets: el.rule,
+      scaleX: [0, 1],
+      duration: 950,
+      easing: 'easeInOutQuart'
+    }, '-=780');
+
+    tl.add({
+      targets: '#verse .w',
+      opacity: [0, 1],
+      translateY: [12, 0],
+      duration: 780,
+      delay: anime.stagger(19)
+    }, '-=800');
+
+    tl.add({
+      targets: el.ref,
+      opacity: [0, 1],
+      letterSpacing: ['0.62em', '0.22em'],
+      duration: 1000
+    }, '-=560');
+
+    tl.add({
+      targets: el.flourish,
+      opacity: [0, 1],
+      scaleX: [0.7, 1],
+      duration: 900
+    }, '-=780');
+
+    /* Light passes across the paper. */
+    tl.add({
+      targets: el.sheen,
+      opacity: [0, 0.9],
+      translateX: ['-140%', '-30%'],
+      duration: 450,
+      easing: 'linear'
+    }, '-=700');
+
+    tl.add({
+      targets: el.sheen,
+      translateX: ['-30%', '250%'],
+      opacity: [0.9, 0],
+      duration: 1050,
+      easing: 'easeInQuad'
+    });
+
+    return tl.finished;
+  }
+
+  function dismissCard() {
+    var anime = window.anime;
+    var tl = anime.timeline({ easing: 'easeInQuad' });
+
+    tl.add({
+      targets: '#affirmation .wi',
+      translateY: ['0%', '-115%'],
+      duration: 480,
+      delay: anime.stagger(24)
+    });
+
+    tl.add({
+      targets: '#verse .w',
+      opacity: 0,
+      translateY: -10,
+      duration: 340,
+      delay: anime.stagger(8)
+    }, '-=420');
+
+    tl.add({
+      targets: [el.eyebrow, el.ref, el.flourish],
+      opacity: 0,
+      duration: 320
+    }, '-=340');
+
+    tl.add({
+      targets: el.rule,
+      scaleX: 0,
+      duration: 380,
+      easing: 'easeInOutQuart'
+    }, '-=320');
+
+    tl.add({
+      targets: el.card,
+      opacity: [1, 0],
+      translateY: -18,
+      scale: 0.975,
+      duration: 460
+    }, '-=280');
+
+    return tl.finished;
+  }
+
+  /* ---------- interaction ---------- */
+
+  function drawNext() {
+    if (busy) return;
+    busy = true;
+    el.btnNew.disabled = true;
+
+    var next = randomOther(current);
+
+    if (!motionLive) {
+      render(next);
+      setAura(next.theme, 0);
+      showInstant();
+      busy = false;
+      el.btnNew.disabled = false;
+      return;
+    }
+
+    setAura(next.theme, 1400);
+
+    var run = dismissCard().then(function () {
+      render(next);
+      return revealCard({ first: false });
+    }).then(function () {
+      busy = false;
+      el.btnNew.disabled = false;
+    });
+
+    run.catch(function () {
+      showInstant();
+      busy = false;
+      el.btnNew.disabled = false;
+    });
+
+    withWatchdog(run, 6000);
+  }
+
+  function shareText() {
+    return current.affirmation + '\n\n“' + current.verse + '”\n— ' + current.ref;
+  }
+
+  function shareUrl() {
+    var u = new URL(window.location.href);
+    u.search = '';
+    u.hash = '';
+    u.searchParams.set('b', current.id);
+    return u.toString();
+  }
+
+  function toast(msg) {
+    el.toast.textContent = msg;
+    el.toast.classList.add('is-visible');
+    clearTimeout(toast._t);
+    toast._t = setTimeout(function () {
+      el.toast.classList.remove('is-visible');
+    }, 2600);
+  }
+
+  function onShare() {
+    var payload = {
+      title: 'A blessing for you',
+      text: shareText(),
+      url: shareUrl()
+    };
+
+    if (navigator.share) {
+      navigator.share(payload).catch(function (err) {
+        if (err && err.name === 'AbortError') return;
+        copyFallback();
+      });
+      return;
+    }
+    copyFallback();
+  }
+
+  function copyFallback() {
+    var text = shareText() + '\n\n' + shareUrl();
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text)
+        .then(function () { toast('Blessing copied'); })
+        .catch(function () { toast('Copy not available'); });
+    } else {
+      toast('Copy not available');
+    }
+  }
+
+  /* ---------- ambient motes ---------- */
+
+  function initMotes() {
+    var cv = document.getElementById('motes');
+    if (!cv || !cv.getContext) return;
+    var ctx = cv.getContext('2d');
+    var w = 0, h = 0, dpr = 1;
+    var parts = [];
+    var raf = null;
+    var sprite = makeSprite();
+
+    function makeSprite() {
+      var s = document.createElement('canvas');
+      var n = 64;
+      s.width = s.height = n;
+      var c = s.getContext('2d');
+      var g = c.createRadialGradient(n / 2, n / 2, 0, n / 2, n / 2, n / 2);
+      g.addColorStop(0, 'rgba(255,240,205,0.95)');
+      g.addColorStop(0.32, 'rgba(233,201,126,0.45)');
+      g.addColorStop(1, 'rgba(233,201,126,0)');
+      c.fillStyle = g;
+      c.fillRect(0, 0, n, n);
+      return s;
+    }
+
+    function spawn(anywhere) {
+      return {
+        x: Math.random() * w,
+        y: anywhere ? Math.random() * h : h + 20,
+        r: 0.7 + Math.random() * 2.1,
+        vy: 0.07 + Math.random() * 0.26,
+        drift: (Math.random() - 0.5) * 0.20,
+        a: 0.10 + Math.random() * 0.40,
+        ph: Math.random() * Math.PI * 2,
+        sp: 0.005 + Math.random() * 0.013
+      };
+    }
+
+    function size() {
+      dpr = Math.min(window.devicePixelRatio || 1, 2);
+      w = cv.clientWidth;
+      h = cv.clientHeight;
+      cv.width = Math.round(w * dpr);
+      cv.height = Math.round(h * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      var n = Math.round(Math.min(56, Math.max(22, (w * h) / 27000)));
+      parts = [];
+      for (var i = 0; i < n; i++) parts.push(spawn(true));
+    }
+
+    function frame() {
+      ctx.clearRect(0, 0, w, h);
+      ctx.globalCompositeOperation = 'lighter';
+      for (var i = 0; i < parts.length; i++) {
+        var p = parts[i];
+        p.y -= p.vy;
+        p.x += p.drift + Math.sin(p.ph) * 0.16;
+        p.ph += p.sp;
+        if (p.y < -20) parts[i] = spawn(false);
+        var d = p.r * 11;
+        ctx.globalAlpha = p.a * (0.62 + 0.38 * Math.sin(p.ph * 1.7));
+        ctx.drawImage(sprite, p.x - d / 2, p.y - d / 2, d, d);
+      }
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = 'source-over';
+      raf = requestAnimationFrame(frame);
+    }
+
+    function start() { if (raf === null) raf = requestAnimationFrame(frame); }
+    function stop() { if (raf !== null) { cancelAnimationFrame(raf); raf = null; } }
+
+    size();
+    start();
+
+    var resizeTimer;
+    window.addEventListener('resize', function () {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(size, 180);
+    });
+
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) stop(); else start();
+    });
+  }
+
+  /* ---------- pointer parallax ---------- */
+
+  function initTilt() {
+    if (!window.matchMedia('(pointer: fine)').matches) return;
+    var target = { x: 0, y: 0 };
+    var at = { x: 0, y: 0 };
+    var raf = null;
+
+    function loop() {
+      at.x += (target.x - at.x) * 0.07;
+      at.y += (target.y - at.y) * 0.07;
+      el.tilt.style.transform = 'rotateY(' + at.x.toFixed(3) + 'deg) rotateX(' + at.y.toFixed(3) + 'deg)';
+      if (Math.abs(target.x - at.x) < 0.01 && Math.abs(target.y - at.y) < 0.01) {
+        raf = null;
+        return;
+      }
+      raf = requestAnimationFrame(loop);
+    }
+
+    window.addEventListener('pointermove', function (e) {
+      target.x = (e.clientX / window.innerWidth - 0.5) * 2 * 6;
+      target.y = -(e.clientY / window.innerHeight - 0.5) * 2 * 4.5;
+      if (raf === null) raf = requestAnimationFrame(loop);
+    }, { passive: true });
+
+    window.addEventListener('pointerleave', function () {
+      target.x = 0; target.y = 0;
+      if (raf === null) raf = requestAnimationFrame(loop);
+    }, { passive: true });
+  }
+
+  /* ---------- boot ---------- */
+
+  function chromeIn() {
+    if (!animated) return;
+    window.anime({
+      targets: [el.brand, el.actions, el.foot],
+      opacity: [0, 1],
+      translateY: [12, 0],
+      duration: 1100,
+      delay: window.anime.stagger(140, { start: 500 }),
+      easing: 'easeOutExpo'
+    });
+  }
+
+  function boot() {
+    /* A scan should always land at the top of the card, never on a restored
+       scroll position from a previous visit. */
+    if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
+    var q = fromQuery();
+    var start = q ? q.blessing : randomOther(null);
+
+    render(start, q && q.label);
+    setAura(start.theme, 0);
+
+    el.btnNew.addEventListener('click', drawNext);
+    el.btnShare.addEventListener('click', onShare);
+
+    document.addEventListener('keydown', function (e) {
+      if (e.target && /^(INPUT|TEXTAREA)$/.test(e.target.tagName)) return;
+      if (e.key === 'ArrowRight' || e.key === 'n' || e.key === 'N') {
+        e.preventDefault();
+        drawNext();
+      }
+    });
+
+    if (!animated) {
+      showInstant();
+      return;
+    }
+
+    rafAlive(600).then(function (alive) {
+      if (!alive) {
+        motionLive = false;
+        showInstant();
+        return;
+      }
+
+      initMotes();
+      initTilt();
+
+      /* Hold the reveal until the serif has loaded, so words don't reflow
+         mid-animation — but never wait longer than 1.4s for it. */
+      var fonts = (document.fonts && document.fonts.ready)
+        ? Promise.race([document.fonts.ready, delay(1400)])
+        : delay(0);
+
+      var run = fonts.then(function () {
+        chromeIn();
+        return revealCard({ first: true });
+      });
+
+      run.catch(showInstant);
+      withWatchdog(run, 8000);
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', boot);
+  } else {
+    boot();
+  }
+})();

@@ -1,0 +1,443 @@
+/* ============================================================
+   Blessing Cards
+   A single illuminated card floating in a quiet, dark room.
+   ============================================================ */
+
+:root {
+  /* Ambient hue + saturation, animated per blessing theme by app.js */
+  --aura-h: 42;
+  --aura-s: 62%;
+
+  --night-1: #05070d;
+  --night-2: #0a0d16;
+  --night-3: #121727;
+
+  --parchment-1: #fdfaf3;
+  --parchment-2: #f6eede;
+  --parchment-3: #eee2cb;
+
+  --ink: #221c15;
+  --ink-soft: #4a3f33;
+  --ink-faint: #7b6d5c;
+
+  --gold: #b98f2e;
+  --gold-bright: #e3c579;
+  --gold-dim: rgba(185, 143, 46, 0.42);
+
+  --ui: #cfc6b8;
+  --ui-dim: rgba(207, 198, 184, 0.55);
+
+  --card-w: min(clamp(19rem, 92vw, 30rem), 92vw);
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100svh;
+  background: var(--night-1);
+  color: var(--ui);
+  font-family: 'Jost', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-weight: 300;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ---------- Ambient background ---------- */
+
+#motes {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.aura {
+  position: fixed;
+  inset: -20%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(58% 44% at 50% 34%,
+      hsl(var(--aura-h) var(--aura-s) 52% / 0.20) 0%,
+      hsl(var(--aura-h) var(--aura-s) 40% / 0.10) 34%,
+      transparent 68%),
+    radial-gradient(90% 70% at 50% 8%, var(--night-3) 0%, transparent 60%),
+    linear-gradient(180deg, var(--night-2) 0%, var(--night-1) 62%, #03050a 100%);
+}
+
+.vignette {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background: radial-gradient(120% 90% at 50% 45%, transparent 45%, rgba(0, 0, 0, 0.55) 100%);
+}
+
+/* ---------- Layout ---------- */
+
+.shell {
+  position: relative;
+  z-index: 3;
+  min-height: 100svh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  padding:
+    calc(1.5rem + env(safe-area-inset-top)) 1.15rem
+    calc(1.5rem + env(safe-area-inset-bottom));
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  opacity: 0;
+  color: var(--gold-bright);
+}
+
+.brand__mark { width: 1.05rem; height: 1.05rem; }
+
+.brand__name {
+  font-size: 0.7rem;
+  letter-spacing: 0.34em;
+  text-transform: uppercase;
+  color: var(--ui-dim);
+}
+
+.stage {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.9rem;
+}
+
+/* ---------- The card ---------- */
+
+.card-scene { perspective: 1400px; }
+
+.card-float { animation: float 9s ease-in-out infinite; }
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-9px); }
+}
+
+.card-tilt { transform-style: preserve-3d; will-change: transform; }
+
+.card {
+  position: relative;
+  width: var(--card-w);
+  overflow: hidden;
+  border-radius: 3px;
+  opacity: 0;
+  background:
+    linear-gradient(158deg, var(--parchment-1) 0%, var(--parchment-2) 52%, var(--parchment-3) 100%);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.55) inset,
+    0 0 0 1px rgba(120, 95, 45, 0.16),
+    0 2px 5px rgba(0, 0, 0, 0.35),
+    0 18px 45px rgba(0, 0, 0, 0.5),
+    0 42px 90px -30px hsl(var(--aura-h) 60% 40% / 0.42);
+}
+
+/* Double hairline border, like a certificate */
+.card__rules {
+  position: absolute;
+  inset: 0.55rem;
+  border: 1px solid rgba(150, 120, 60, 0.30);
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+.card__rules::after {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 1px solid rgba(150, 120, 60, 0.15);
+  border-radius: 1px;
+}
+
+/* Paper grain */
+.card__grain {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.35;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.32'/%3E%3C/svg%3E");
+}
+
+.card__sheen {
+  position: absolute;
+  top: -30%;
+  left: 0;
+  width: 45%;
+  height: 160%;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-140%) skewX(-18deg);
+  background: linear-gradient(90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.10) 30%,
+    rgba(255, 252, 240, 0.72) 50%,
+    rgba(255, 255, 255, 0.10) 70%,
+    transparent 100%);
+}
+
+.card__body {
+  position: relative;
+  z-index: 2;
+  padding: clamp(2.1rem, 8vw, 3rem) clamp(1.5rem, 7vw, 2.75rem) clamp(1.7rem, 6vw, 2.35rem);
+  text-align: center;
+}
+
+/* Seal */
+.seal {
+  display: block;
+  width: clamp(2.6rem, 11vw, 3.15rem);
+  height: auto;
+  margin: 0 auto clamp(1.15rem, 4vw, 1.5rem);
+  color: var(--gold);
+}
+
+.seal__cross { stroke-width: 1.5; }
+
+/* Eyebrow */
+.card__eyebrow {
+  margin: 0 0 clamp(0.9rem, 3.5vw, 1.15rem);
+  opacity: 0;
+  font-size: 0.62rem;
+  font-weight: 400;
+  letter-spacing: 0.38em;
+  text-indent: 0.38em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* Affirmation — the hero line */
+.card__affirmation {
+  margin: 0;
+  font-family: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
+  font-weight: 400;
+  font-size: clamp(1.72rem, 7.4vw, 2.5rem);
+  line-height: 1.16;
+  letter-spacing: 0.002em;
+  color: var(--ink);
+  text-wrap: balance;
+}
+
+/* Masked word reveal */
+.w {
+  display: inline-block;
+  overflow: hidden;
+  vertical-align: bottom;
+  padding-bottom: 0.14em;
+  margin-bottom: -0.14em;
+}
+
+.wi { display: inline-block; }
+
+/* Rule */
+.card__rule {
+  width: clamp(3.4rem, 16vw, 4.6rem);
+  height: 1px;
+  margin: clamp(1.15rem, 4.5vw, 1.6rem) auto clamp(1.1rem, 4vw, 1.45rem);
+  transform: scaleX(0);
+  background: linear-gradient(90deg,
+    transparent, var(--gold-dim) 22%, var(--gold) 50%, var(--gold-dim) 78%, transparent);
+}
+
+/* Verse */
+.card__verse {
+  margin: 0;
+  font-family: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
+  font-style: italic;
+  font-weight: 300;
+  font-size: clamp(0.985rem, 3.9vw, 1.135rem);
+  line-height: 1.62;
+  color: var(--ink-soft);
+  text-wrap: pretty;
+}
+
+.card__verse .w { padding-bottom: 0; margin-bottom: 0; overflow: visible; }
+
+/* Reference */
+.card__ref {
+  display: block;
+  margin-top: clamp(1.1rem, 4vw, 1.4rem);
+  opacity: 0;
+  font-size: 0.635rem;
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  text-indent: 0.22em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.flourish {
+  display: block;
+  width: clamp(7.5rem, 34vw, 9.5rem);
+  height: auto;
+  margin: clamp(1.35rem, 5vw, 1.75rem) auto 0;
+  color: var(--gold-dim);
+}
+
+/* ---------- Actions ---------- */
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.7rem;
+  opacity: 0;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  position: relative;
+  overflow: hidden;
+  min-height: 2.85rem;
+  padding: 0 1.5rem;
+  border: 1px solid var(--gold-dim);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ui);
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.2em;
+  text-indent: 0.2em;
+  text-transform: uppercase;
+  cursor: pointer;
+  isolation: isolate; /* keeps ::before's z-index:-1 inside the button */
+  -webkit-tap-highlight-color: transparent;
+  transition:
+    color 340ms var(--ease-out),
+    border-color 340ms var(--ease-out),
+    transform 260ms var(--ease-out),
+    box-shadow 340ms var(--ease-out);
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  transform: scaleX(0);
+  transform-origin: left center;
+  background: linear-gradient(90deg, var(--gold), var(--gold-bright));
+  transition: transform 460ms var(--ease-out);
+}
+
+.btn__icon { width: 0.95rem; height: 0.95rem; flex: none; }
+
+.btn--primary {
+  border-color: rgba(227, 197, 121, 0.62);
+  color: var(--gold-bright);
+}
+
+.btn:hover {
+  color: #1c1710;
+  border-color: var(--gold-bright);
+  box-shadow: 0 6px 26px hsl(var(--aura-h) 60% 45% / 0.30);
+}
+
+.btn:hover::before { transform: scaleX(1); }
+
+.btn:active { transform: translateY(1px); }
+
+.btn:focus-visible {
+  outline: 2px solid var(--gold-bright);
+  outline-offset: 3px;
+}
+
+.btn[disabled] { opacity: 0.45; pointer-events: none; }
+
+/* ---------- Footer ---------- */
+
+.foot {
+  opacity: 0;
+  text-align: center;
+}
+
+.foot__line {
+  margin: 0;
+  font-size: 0.63rem;
+  letter-spacing: 0.16em;
+  color: rgba(207, 198, 184, 0.42);
+}
+
+.foot__line--dim {
+  margin-top: 0.3rem;
+  color: rgba(207, 198, 184, 0.24);
+  font-style: italic;
+  letter-spacing: 0.1em;
+}
+
+/* ---------- Toast ---------- */
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1.4rem + env(safe-area-inset-bottom));
+  z-index: 20;
+  transform: translate(-50%, 130%);
+  padding: 0.6rem 1.1rem;
+  border: 1px solid var(--gold-dim);
+  border-radius: 999px;
+  background: rgba(10, 13, 22, 0.94);
+  color: var(--gold-bright);
+  font-size: 0.68rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 520ms var(--ease-out), opacity 380ms var(--ease-out);
+}
+
+.toast.is-visible {
+  transform: translate(-50%, 0);
+  opacity: 1;
+}
+
+/* ---------- Wider screens ---------- */
+
+@media (min-width: 48rem) {
+  .shell { gap: 1.75rem; padding-top: 2.4rem; padding-bottom: 2rem; }
+  .stage { gap: 2.4rem; }
+}
+
+/* Short landscape phones: keep everything on one screen */
+@media (max-height: 34rem) and (orientation: landscape) {
+  .card__body { padding: 1.5rem 1.75rem 1.3rem; }
+  .seal { width: 2.2rem; margin-bottom: 0.75rem; }
+  .card__affirmation { font-size: 1.5rem; }
+  .flourish { display: none; }
+  .foot__line--dim { display: none; }
+}
+
+/* ---------- Reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .card-float { animation: none; }
+  * { transition-duration: 1ms !important; }
+}

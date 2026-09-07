@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Blessing Cards — A blessing for you</title>
+<meta name="description" content="A moment of encouragement, founded in Scripture. Scan, receive, and pass it on.">
+<meta name="theme-color" content="#0a0d16">
+<meta name="color-scheme" content="dark">
+
+<meta property="og:type" content="website">
+<meta property="og:title" content="Blessing Cards">
+<meta property="og:description" content="A moment of encouragement, founded in Scripture.">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%230a0d16'/%3E%3Cg fill='none' stroke='%23d8b45a' stroke-width='3' stroke-linecap='round'%3E%3Cpath d='M32 16v32M22 27h20'/%3E%3C/g%3E%3C/svg%3E">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Jost:wght@300;400;500&display=swap">
+<link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body>
+
+<canvas id="motes" aria-hidden="true"></canvas>
+<div class="aura" aria-hidden="true"></div>
+<div class="vignette" aria-hidden="true"></div>
+
+<div class="shell">
+
+  <header class="brand">
+    <svg class="brand__mark" viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M12 3.5v17M6.5 9h11" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+    </svg>
+    <span class="brand__name">Blessing&nbsp;Cards</span>
+  </header>
+
+  <main class="stage">
+    <div class="card-scene">
+      <div class="card-float">
+        <div class="card-tilt" id="tilt">
+          <article class="card" id="card" aria-live="polite">
+            <div class="card__sheen" id="sheen" aria-hidden="true"></div>
+            <div class="card__grain" aria-hidden="true"></div>
+            <div class="card__rules" aria-hidden="true"></div>
+
+            <div class="card__body">
+
+              <svg class="seal" id="seal" viewBox="0 0 64 64" aria-hidden="true">
+                <g fill="none" stroke="currentColor" stroke-linecap="round" stroke-width="1.1">
+                  <circle class="seal__ring" cx="32" cy="32" r="21.5"/>
+                  <circle class="seal__ring" cx="32" cy="32" r="16.5"/>
+                  <path class="seal__cross" d="M32 21.5v21M23.5 29h17"/>
+                  <g class="seal__ray" stroke-width="1.3">
+                    <path d="M32 6.5V2.5"/>
+                    <path d="M50.4 13.6 53.2 10.8"/>
+                    <path d="M57.5 32h4"/>
+                    <path d="M50.4 50.4 53.2 53.2"/>
+                    <path d="M32 57.5v4"/>
+                    <path d="M13.6 50.4 10.8 53.2"/>
+                    <path d="M6.5 32h-4"/>
+                    <path d="M13.6 13.6 10.8 10.8"/>
+                  </g>
+                </g>
+              </svg>
+
+              <p class="card__eyebrow" id="eyebrow">A blessing for you</p>
+
+              <h1 class="card__affirmation" id="affirmation"></h1>
+
+              <div class="card__rule" id="rule" aria-hidden="true"></div>
+
+              <blockquote class="card__verse" id="verse"></blockquote>
+
+              <cite class="card__ref" id="ref"></cite>
+
+              <svg class="flourish" id="flourish" viewBox="0 0 200 20" aria-hidden="true">
+                <g fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round">
+                  <path d="M14 10h64"/>
+                  <path d="M122 10h64"/>
+                  <path d="M100 3.5 106.5 10 100 16.5 93.5 10Z"/>
+                  <circle cx="100" cy="10" r="1.6"/>
+                  <circle cx="8" cy="10" r="1.6"/>
+                  <circle cx="192" cy="10" r="1.6"/>
+                </g>
+              </svg>
+
+            </div>
+          </article>
+        </div>
+      </div>
+    </div>
+
+    <div class="actions" id="actions">
+      <button class="btn btn--primary" id="btn-new" type="button">
+        <span class="btn__label">Another blessing</span>
+      </button>
+      <button class="btn btn--ghost" id="btn-share" type="button">
+        <svg viewBox="0 0 24 24" aria-hidden="true" class="btn__icon">
+          <path d="M12 3.5v11M12 3.5 8.4 7.1M12 3.5l3.6 3.6M5.5 12.5v6a2 2 0 0 0 2 2h9a2 2 0 0 0 2-2v-6"
+                fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <span class="btn__label">Share</span>
+      </button>
+    </div>
+  </main>
+
+  <footer class="foot">
+    <p class="foot__line">Scripture quoted from the King James Version.</p>
+    <p class="foot__line foot__line--dim">Take heart. Then pass it on.</p>
+  </footer>
+
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+<script src="assets/js/blessings.js"></script>
+<script src="assets/js/app.js"></script>
+</body>
+</html>
