@@ -140,6 +140,8 @@ body {
 
 .card {
   position: relative;
+  display: flex;
+  flex-direction: column;
   width: var(--card-w);
   overflow: hidden;
   border-radius: 3px;
@@ -201,8 +203,21 @@ body {
 .card__body {
   position: relative;
   z-index: 2;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
   padding: clamp(2.1rem, 8vw, 3rem) clamp(1.5rem, 7vw, 2.75rem) clamp(1.7rem, 6vw, 2.35rem);
   text-align: center;
+}
+
+/* The card is held at the height of its longest passage (measured in app.js),
+   so drawing a new blessing never resizes it. Shorter blessings sit centred
+   between the seal and the flourish rather than riding up to the top. */
+.card__content {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 /* Seal */

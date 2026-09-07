@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Jost:wght@300;400;500&display=swap">
-<link rel="stylesheet" href="assets/css/styles.css?v=20260907175802">
+<link rel="stylesheet" href="assets/css/styles.css?v=20260907181125">
 </head>
 <body>
 
@@ -64,6 +64,10 @@
                 </g>
               </svg>
 
+              <!-- Only this block changes between blessings. The card, seal and
+                   flourish stay put so drawing again never reads as a reload. -->
+              <div class="card__content" id="content">
+
               <p class="card__eyebrow" id="eyebrow">A blessing for you</p>
 
               <h1 class="card__affirmation" id="affirmation"></h1>
@@ -86,6 +90,8 @@
                   <path class="listen__pause" d="M9.8 7.6v8.8M14.2 7.6v8.8"/>
                 </svg>
               </button>
+
+              </div><!-- /.card__content -->
 
               <svg class="flourish" id="flourish" viewBox="0 0 200 20" aria-hidden="true">
                 <g fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round">
@@ -128,8 +134,8 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
-<script src="assets/js/blessings.js?v=20260907175802"></script>
-<script src="assets/audio/manifest.js?v=20260907175802"></script>
-<script src="assets/js/app.js?v=20260907175802"></script>
+<script src="assets/js/blessings.js?v=20260907181125"></script>
+<script src="assets/audio/manifest.js?v=20260907181125"></script>
+<script src="assets/js/app.js?v=20260907181125"></script>
 </body>
 </html>

@@ -179,6 +179,79 @@
     el.root.style.setProperty('--aura-s', hue.s.toFixed(1) + '%');
   }
 
+  /* ---------- fixed card height ---------- */
+
+  /* Measure every blessing in an offscreen copy of the card and hold the real
+     one at the tallest. Done by measurement rather than a hard-coded height
+     because the longest passage wraps to a different number of lines at every
+     width. Re-run on resize and once webfonts have settled, since both change
+     the answer. */
+  function tallestCard() {
+    var width = el.card.getBoundingClientRect().width;
+    if (!width) return 0;
+
+    var clone = el.card.cloneNode(true);
+    clone.removeAttribute('id');
+    clone.style.cssText =
+      'position:absolute;left:-10000px;top:0;visibility:hidden;pointer-events:none;' +
+      'opacity:1;transform:none;min-height:0;width:' + width + 'px';
+
+    var aff = clone.querySelector('.card__affirmation');
+    var verse = clone.querySelector('.card__verse');
+    var listen = clone.querySelector('.listen');
+    /* Reserve room for the button even on blessings that lack a recording,
+       so the height does not depend on which files exist. */
+    if (listen) listen.hidden = false;
+    if (!aff || !verse) return 0;
+
+    document.body.appendChild(clone);
+
+    var max = 0;
+    for (var i = 0; i < DATA.length; i++) {
+      aff.innerHTML = maskedWords(DATA[i].affirmation);
+      verse.innerHTML = plainWords(DATA[i].verse);
+      var h = clone.offsetHeight;
+      if (h > max) max = h;
+    }
+
+    document.body.removeChild(clone);
+    return max;
+  }
+
+  var fittedWidth = 0;
+
+  /* Only refit when the width actually changes. That makes this cheap to call
+     often, and stops the height we set from retriggering the observer below. */
+  function fitCard() {
+    var w = Math.round(el.card.getBoundingClientRect().width);
+    if (!w || w === fittedWidth) return;
+
+    var h = tallestCard();
+    if (h > 0) {
+      el.card.style.minHeight = h + 'px';
+      fittedWidth = w;
+    }
+  }
+
+  /* The card can have no width yet when boot runs — a hidden tab, or layout
+     deferred for any other reason — and measuring then yields nothing. Watching
+     the element means we fit as soon as it has a real size, and again whenever
+     that size changes, instead of relying on one well-timed call. */
+  function watchCardWidth() {
+    fitCard();
+
+    if (typeof ResizeObserver === 'function') {
+      new ResizeObserver(fitCard).observe(el.card);
+      return;
+    }
+
+    var refit;
+    window.addEventListener('resize', function () {
+      clearTimeout(refit);
+      refit = setTimeout(fitCard, 200);
+    });
+  }
+
   /* ---------- motion ---------- */
 
   function showInstant() {
@@ -212,46 +285,26 @@
     el.seal.style.opacity = 1;
   }
 
-  function revealCard(opts) {
+  /* Puts the changing text back to its pre-reveal position. The card, seal and
+     flourish are deliberately untouched. */
+  function resetContent() {
     var anime = window.anime;
-    var first = opts && opts.first;
-
-    anime.set(el.card, { opacity: 0, translateY: 30, scale: 0.94, rotateX: 8 });
     anime.set('#affirmation .wi', { translateY: '115%' });
     anime.set('#verse .w', { opacity: 0, translateY: 12 });
-    anime.set([el.eyebrow, el.ref], { opacity: 0 });
+    anime.set([el.eyebrow, el.ref, el.listen], { opacity: 0 });
     anime.set(el.rule, { scaleX: 0 });
-    anime.set([el.flourish, el.listen], { opacity: 0 });
-    anime.set(el.sheen, { opacity: 0, translateX: '-140%', skewX: -18 });
+  }
 
-    var tl = anime.timeline({ easing: 'easeOutExpo' });
-
-    tl.add({
-      targets: el.card,
-      opacity: [0, 1],
-      translateY: [30, 0],
-      scale: [0.94, 1],
-      rotateX: [8, 0],
-      duration: first ? 1300 : 900
-    });
-
-    if (first) {
-      tl.add({
-        targets: '#seal circle, #seal path',
-        strokeDashoffset: [anime.setDashoffset, 0],
-        opacity: [0, 1],
-        duration: 1100,
-        delay: anime.stagger(55),
-        easing: 'easeInOutSine'
-      }, '-=1050');
-    }
+  /* Content only — used every time a new blessing is drawn. */
+  function revealContent(tl, offset) {
+    var anime = window.anime;
 
     tl.add({
       targets: el.eyebrow,
       opacity: [0, 1],
       translateY: [10, 0],
       duration: 800
-    }, first ? '-=750' : '-=650');
+    }, offset);
 
     tl.add({
       targets: '#affirmation .wi',
@@ -283,12 +336,52 @@
     }, '-=560');
 
     tl.add({
-      targets: [el.flourish, el.listen],
+      targets: el.listen,
       opacity: [0, 1],
       duration: 900
     }, '-=780');
 
-    /* Light passes across the paper. */
+    return tl;
+  }
+
+  /* First paint only: the whole card arrives, the seal draws itself, and light
+     passes over the paper. None of this repeats on later draws. */
+  function revealCard() {
+    var anime = window.anime;
+
+    anime.set(el.card, { opacity: 0, translateY: 30, scale: 0.94, rotateX: 8 });
+    anime.set(el.flourish, { opacity: 0 });
+    anime.set(el.sheen, { opacity: 0, translateX: '-140%', skewX: -18 });
+    resetContent();
+
+    var tl = anime.timeline({ easing: 'easeOutExpo' });
+
+    tl.add({
+      targets: el.card,
+      opacity: [0, 1],
+      translateY: [30, 0],
+      scale: [0.94, 1],
+      rotateX: [8, 0],
+      duration: 1300
+    });
+
+    tl.add({
+      targets: '#seal circle, #seal path',
+      strokeDashoffset: [anime.setDashoffset, 0],
+      opacity: [0, 1],
+      duration: 1100,
+      delay: anime.stagger(55),
+      easing: 'easeInOutSine'
+    }, '-=1050');
+
+    revealContent(tl, '-=750');
+
+    tl.add({
+      targets: el.flourish,
+      opacity: [0, 1],
+      duration: 900
+    }, '-=900');
+
     tl.add({
       targets: el.sheen,
       opacity: [0, 0.9],
@@ -305,6 +398,13 @@
       easing: 'easeInQuad'
     });
 
+    return tl.finished;
+  }
+
+  function swapInContent() {
+    resetContent();
+    var tl = window.anime.timeline({ easing: 'easeOutExpo' });
+    revealContent(tl, 0);
     return tl.finished;
   }
 
@@ -328,7 +428,7 @@
     }, '-=420');
 
     tl.add({
-      targets: [el.eyebrow, el.ref, el.flourish, el.listen],
+      targets: [el.eyebrow, el.ref, el.listen],
       opacity: 0,
       duration: 320
     }, '-=340');
@@ -340,14 +440,9 @@
       easing: 'easeInOutQuart'
     }, '-=320');
 
-    tl.add({
-      targets: el.card,
-      opacity: [1, 0],
-      translateY: -18,
-      scale: 0.975,
-      duration: 460
-    }, '-=280');
-
+    /* The card itself, the seal and the flourish stay exactly where they are —
+       only the words leave, so drawing again reads as the text changing rather
+       than the page reloading. */
     return tl.finished;
   }
 
@@ -357,6 +452,70 @@
   var circumference = 0;
   var audioState = 'idle';  /* idle | loading | playing */
   var audioId = null;       /* which blessing the player currently holds */
+
+  /* The recordings end on a non-zero sample, which a media element clips off
+     abruptly — audible as a small pop on playback, though local players hide it
+     by draining their own buffer. Routing through a gain node lets us ramp to
+     silence just before the stream ends. `volume` would be simpler but is
+     read-only on iOS, so it is no use here. */
+  var FADE_OUT = 0.14;
+  var actx = null;
+  var gainNode = null;
+  var graphOff = false;
+
+  function prepareGraph(p) {
+    if (gainNode || graphOff) return;
+    var AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC || !AC.prototype.createMediaElementSource) { graphOff = true; return; }
+
+    try {
+      actx = new AC();
+    } catch (e) {
+      graphOff = true;
+      return;
+    }
+
+    /* Only take over routing once the context is actually running. Connecting a
+       suspended context would silence playback entirely, which is far worse
+       than the pop we are removing. */
+    var connect = function () {
+      if (gainNode || actx.state !== 'running') return;
+      try {
+        gainNode = actx.createGain();
+        actx.createMediaElementSource(p).connect(gainNode);
+        gainNode.connect(actx.destination);
+      } catch (e) {
+        gainNode = null;
+        graphOff = true;
+      }
+    };
+
+    if (actx.state === 'running') connect();
+    else if (actx.resume) actx.resume().then(connect, function () { graphOff = true; });
+    else graphOff = true;
+  }
+
+  function scheduleFade() {
+    if (!gainNode || !player) return;
+    var d = player.duration;
+    if (!d || !isFinite(d)) return;
+
+    var rate = player.playbackRate || 1;
+    var remaining = (d - player.currentTime) / rate;
+    var now = actx.currentTime;
+    var start = now + Math.max(0, remaining - FADE_OUT);
+
+    gainNode.gain.cancelScheduledValues(now);
+    gainNode.gain.setValueAtTime(1, now);
+    gainNode.gain.setValueAtTime(1, start);
+    gainNode.gain.linearRampToValueAtTime(0.0001, start + FADE_OUT);
+  }
+
+  function clearFade() {
+    if (!gainNode) return;
+    gainNode.gain.cancelScheduledValues(actx.currentTime);
+    gainNode.gain.setValueAtTime(1, actx.currentTime);
+  }
 
   function hasAudio(b) { return !!(b && HAS_AUDIO[b.id]); }
 
@@ -403,7 +562,12 @@
     player = new Audio();
     player.preload = 'none';
 
-    player.addEventListener('playing', function () { setListenState('playing'); });
+    player.addEventListener('playing', function () {
+      setListenState('playing');
+      scheduleFade();
+    });
+    player.addEventListener('loadedmetadata', scheduleFade);
+    player.addEventListener('seeked', scheduleFade);
     player.addEventListener('waiting', function () { setListenState('loading'); });
     player.addEventListener('pause', function () {
       if (!player.ended) setListenState('idle');
@@ -433,6 +597,7 @@
   function stopAudio() {
     if (player) {
       player.pause();
+      clearFade();
       /* Drop the source so a half-buffered file isn't left downloading. */
       player.removeAttribute('src');
       player.load();
@@ -450,6 +615,7 @@
     /* Anything but idle for this blessing means a press is a stop. */
     if (audioState !== 'idle' && audioId === current.id) {
       p.pause();
+      clearFade();
       setListenState('idle');
       return;
     }
@@ -459,6 +625,9 @@
       audioId = current.id;
       setProgress(0);
     }
+
+    prepareGraph(p);
+    clearFade();
 
     setListenState('loading');
     var attempt = p.play();
@@ -498,7 +667,7 @@
 
     var run = dismissCard().then(function () {
       render(next);
-      return revealCard({ first: false });
+      return swapInContent();
     }).then(function () {
       busy = false;
       el.btnNew.disabled = false;
@@ -716,6 +885,7 @@
     });
 
     if (!animated) {
+      watchCardWidth();
       showInstant();
       return;
     }
@@ -723,12 +893,14 @@
     rafAlive(600).then(function (alive) {
       if (!alive) {
         motionLive = false;
+        watchCardWidth();
         showInstant();
         return;
       }
 
       initMotes();
       initTilt();
+      watchCardWidth();
 
       /* Hold the reveal until the serif has loaded, so words don't reflow
          mid-animation — but never wait longer than 1.4s for it. */
@@ -737,8 +909,11 @@
         : delay(0);
 
       var run = fonts.then(function () {
+        /* Remeasure once webfonts land: metrics shift, and so does the answer. */
+        fittedWidth = 0;
+        fitCard();
         chromeIn();
-        return revealCard({ first: true });
+        return revealCard();
       });
 
       run.catch(showInstant);
