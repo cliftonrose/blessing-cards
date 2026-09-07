@@ -176,37 +176,46 @@
      because the longest passage wraps to a different number of lines at every
      width. Re-run on resize and once webfonts have settled, since both change
      the answer. */
-  /* Measured on the real card rather than a detached copy. A copy parked on the
-     body lays out in a different context and came back about 15px short, which
-     left the page overflowing by exactly that much. Every blessing is swapped
-     through, measured and put back inside one task, so the browser never paints
-     an intermediate state and none of it is visible. */
+  /* Measured on a detached copy, never on the live card.
+     Swapping content through the real card looked tidier but was actively
+     harmful: a refit landing mid-reveal captured innerHTML while anime had
+     transform: translateY(115%) written inline on every word, then restored
+     that as permanent markup — leaving the text parked inside its clipping mask
+     and the card apparently blank.
+     The copy is hung in the card's own parent so it inherits identically;
+     offsetWidth is used rather than a bounding rect because an ancestor may
+     carry a parallax transform. */
   function tallestCard() {
-    if (!el.card.getBoundingClientRect().width) return 0;
+    var width = el.card.offsetWidth;
+    if (!width) return 0;
 
-    var keptAff = el.affirmation.innerHTML;
-    var keptVerse = el.verse.innerHTML;
-    var keptMin = el.card.style.minHeight;
-    var keptHidden = el.listen.hidden;
+    var clone = el.card.cloneNode(true);
+    clone.removeAttribute('id');
+    clone.style.cssText =
+      'position:absolute;left:-10000px;top:0;visibility:hidden;pointer-events:none;' +
+      'opacity:1;transform:none;min-height:0;width:' + width + 'px';
 
-    el.card.style.minHeight = '0px';
+    var aff = clone.querySelector('.card__affirmation');
+    var verse = clone.querySelector('.card__verse');
+    var listen = clone.querySelector('.listen');
+    if (!aff || !verse) return 0;
+
     /* Reserve room for the button even on blessings that lack a recording, so
        the height never depends on which files happen to exist. */
-    el.listen.hidden = false;
+    if (listen) listen.hidden = false;
+
+    var host = el.card.parentNode || document.body;
+    host.appendChild(clone);
 
     var max = 0;
     for (var i = 0; i < DATA.length; i++) {
-      el.affirmation.innerHTML = maskedWords(DATA[i].affirmation);
-      el.verse.innerHTML = plainWords(DATA[i].verse);
-      var h = el.card.offsetHeight;
+      aff.innerHTML = maskedWords(DATA[i].affirmation);
+      verse.innerHTML = plainWords(DATA[i].verse);
+      var h = clone.offsetHeight;
       if (h > max) max = h;
     }
 
-    el.affirmation.innerHTML = keptAff;
-    el.verse.innerHTML = keptVerse;
-    el.listen.hidden = keptHidden;
-    el.card.style.minHeight = keptMin;
-
+    host.removeChild(clone);
     return max;
   }
 

@@ -429,8 +429,13 @@ body {
   align-items: center;
   gap: 1.25rem;
   width: 100%;
-  /* animated by deck.js; kept off the compositor the rest of the time */
+}
+
+/* Promoted only while it is actually moving. Left on permanently this would
+   hold a compositor layer for a view thousands of pixels tall. */
+.view.is-moving {
   will-change: opacity, transform;
+  backface-visibility: hidden;
 }
 
 .view[hidden] { display: none; }

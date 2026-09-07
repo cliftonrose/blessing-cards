@@ -24,6 +24,12 @@
   var current = null;
   var busy = false;
 
+  /* The Good News view is a couple of thousand pixels tall. Sliding something
+     that size across the screen is expensive to composite and reads as jerky,
+     so the movement is a short nudge carrying a cross-fade rather than a full
+     carousel sweep, and the whole thing is over quickly. */
+  var SHIFT = 18;
+
   /* ---------- which view to open on ---------- */
 
   function wanted() {
@@ -69,6 +75,7 @@
      after we thought the view was restored. */
   function bare(el) {
     if (hasAnime) window.anime.remove(el);
+    el.classList.remove('is-moving');
     el.style.opacity = '';
     el.style.transform = '';
   }
@@ -88,14 +95,15 @@
     /* dir: -1 came from a leftward swipe, so the new view enters from the right. */
     var d = dir === 1 ? 1 : -1;
     var moving = hasAnime && !reduced;
-    var out = moving && outgoing ? 280 : 0;
+    var out = moving && outgoing ? 190 : 0;
 
     if (moving && outgoing) {
+      outgoing.classList.add('is-moving');
       window.anime.remove(outgoing);
       window.anime({
         targets: outgoing,
         opacity: [1, 0],
-        translateX: [0, d * 34],
+        translateX: [0, d * SHIFT],
         duration: out,
         easing: 'easeInQuad'
       });
@@ -121,14 +129,15 @@
         return;
       }
 
+      incoming.classList.add('is-moving');
       window.anime.remove(incoming);
-      window.anime.set(incoming, { opacity: 0, translateX: -d * 34 });
+      window.anime.set(incoming, { opacity: 0, translateX: -d * SHIFT });
       window.anime({
         targets: incoming,
         opacity: [0, 1],
-        translateX: [-d * 34, 0],
-        duration: 620,
-        easing: 'easeOutExpo'
+        translateX: [-d * SHIFT, 0],
+        duration: 380,
+        easing: 'easeOutCubic'
       });
 
       /* Clearing the inline styles outright returns the view to its stylesheet
@@ -136,7 +145,7 @@
       setTimeout(function () {
         bare(incoming);
         busy = false;
-      }, 700);
+      }, 440);
     }, out);
   }
 
