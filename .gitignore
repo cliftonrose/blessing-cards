@@ -12,3 +12,6 @@ desktop.ini
 
 # node (not used yet, but keeps things clean)
 node_modules/
+
+# scratch A/B audio, never ship
+assets/audio/_variant-*

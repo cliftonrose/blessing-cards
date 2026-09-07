@@ -76,9 +76,28 @@ fetching one file.
    node scripts/generate-audio.js
    ```
 
-Defaults to the **Ash** voice on **eleven_v3**. If your account has neither, the script
-stops and prints what it does have, so set `ELEVENLABS_VOICE_ID` or `ELEVENLABS_MODEL_ID`
-in `.env` to pick from that list.
+Defaults to the **Ash** voice on **eleven_v3**. The voice is resolved by name, matching
+either the whole name or the part before the descriptor, since library voices are named
+like `Ash - Calm, Soothing, Magnetic Narrative Male Voice`. If your account has neither
+the voice nor the model, the script stops and prints what it does have, so you can set
+`ELEVENLABS_VOICE_ID` or `ELEVENLABS_MODEL_ID` in `.env` from that list.
+
+A text-to-speech-only key works, but it cannot list voices — set `ELEVENLABS_VOICE_ID`
+directly, or tick `voices_read` on the key.
+
+### Delivery
+
+Settled by recording Isaiah 41:10 three ways and listening side by side:
+
+| Take | Result |
+| --- | --- |
+| Plain text, default settings | Baseline, 26.7s |
+| **Explicit breaks, speed 0.92** | **Chosen — 23.5s** |
+| v3 audio tags, Creative stability | Too performed for a blessing |
+
+So `VOICE_SETTINGS` and the `<break>` markers at the top of the script are deliberate,
+not defaults. Note that plain paragraph breaks produce *longer* pauses than an explicit
+`<break time="1.2s" />` — pacing is controlled with `speed`, not by adding breaks.
 
 Useful flags:
 

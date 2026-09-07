@@ -28,6 +28,20 @@ const OUTPUT_FORMAT = process.env.ELEVENLABS_OUTPUT_FORMAT || 'mp3_44100_64';
 const EXT = '.mp3';
 const REQUEST_GAP_MS = 400;
 
+/* Delivery, settled by listening to three takes of Isaiah 41:10 side by side.
+   Explicit break markers are used instead of relying on paragraph breaks, and
+   v3 audio tags ([warmly] and friends) were tried and rejected for a plainer,
+   less performed read. */
+const VOICE_SETTINGS = {
+  stability: 0.5,
+  similarity_boost: 0.75,
+  style: 0,
+  use_speaker_boost: true,
+  speed: 0.92
+};
+const PAUSE_AFTER_AFFIRMATION = '1.2s';
+const PAUSE_BEFORE_REFERENCE = '1.0s';
+
 const API = 'https://api.elevenlabs.io/v1';
 
 function loadEnv() {
@@ -61,7 +75,11 @@ function speakableRef(ref) {
 }
 
 function script(b) {
-  return [b.affirmation, b.verse, speakableRef(b.ref)].join('\n\n');
+  return b.affirmation +
+    '<break time="' + PAUSE_AFTER_AFFIRMATION + '" />' +
+    b.verse +
+    '<break time="' + PAUSE_BEFORE_REFERENCE + '" />' +
+    speakableRef(b.ref);
 }
 
 async function api(endpoint, key) {
@@ -73,9 +91,42 @@ async function api(endpoint, key) {
 async function resolveVoice(key) {
   if (process.env.ELEVENLABS_VOICE_ID) return { voice_id: process.env.ELEVENLABS_VOICE_ID, name: '(from ELEVENLABS_VOICE_ID)' };
 
-  const { voices } = await api('/voices', key);
-  const match = (voices || []).find((v) => v.name.toLowerCase() === VOICE_NAME.toLowerCase());
-  if (match) return match;
+  let voices;
+  try {
+    ({ voices } = await api('/voices', key));
+  } catch (err) {
+    /* A text-to-speech-only key can synthesise but not list voices. That is
+       fine — it just has to be told which voice to use. */
+    if (/HTTP 401/.test(err.message)) {
+      throw new Error(
+        'This key can generate speech but cannot list voices (missing "voices_read").\n\n' +
+        'Either:\n' +
+        '  a) tick voices_read on the key at https://elevenlabs.io/app/settings/api-keys, or\n' +
+        '  b) put the voice id straight in .env:  ELEVENLABS_VOICE_ID=<id>\n\n' +
+        'The id is in the URL when you open a voice in the ElevenLabs Voices page.'
+      );
+    }
+    throw err;
+  }
+  /* Library voices carry a descriptor, e.g. "Ash - Calm, Soothing, Magnetic
+     Narrative Male Voice", so compare against the name before the separator
+     as well as the whole string. */
+  const wanted = VOICE_NAME.trim().toLowerCase();
+  const leading = (name) => name.split(/\s*[-—,(]/)[0].trim().toLowerCase();
+
+  const hits = (voices || []).filter(
+    (v) => v.name.trim().toLowerCase() === wanted || leading(v.name) === wanted
+  );
+
+  if (hits.length === 1) return hits[0];
+
+  if (hits.length > 1) {
+    throw new Error(
+      'More than one voice matches "' + VOICE_NAME + '":\n' +
+      hits.map((v) => '  ' + v.name + '  (' + v.voice_id + ')').join('\n') +
+      '\n\nPick one and set ELEVENLABS_VOICE_ID in .env.'
+    );
+  }
 
   const names = (voices || []).map((v) => '  ' + v.name + '  (' + v.voice_id + ')').join('\n');
   throw new Error(
@@ -115,7 +166,7 @@ async function speak(text, voiceId, key) {
       'Content-Type': 'application/json',
       Accept: 'audio/mpeg'
     },
-    body: JSON.stringify({ text, model_id: MODEL_ID })
+    body: JSON.stringify({ text, model_id: MODEL_ID, voice_settings: VOICE_SETTINGS })
   });
 
   if (!res.ok) {
@@ -173,9 +224,12 @@ async function main() {
     ? new Set(args[onlyArg + 1].split(',').map((s) => s.trim()))
     : null;
 
-  const key = process.env.ELEVENLABS_API_KEY;
+  const key = process.env.ELEVENLABS_API_KEY
+    || process.env.ELEVEN_LABS_TEXT_TO_SPEECH_API_KEY
+    || process.env.ELEVENLABS_KEY;
   if (!key) {
-    console.error('\nELEVENLABS_API_KEY is not set.\n');
+    console.error('\nNo ElevenLabs key found in .env.');
+    console.error('Looked for ELEVENLABS_API_KEY, ELEVEN_LABS_TEXT_TO_SPEECH_API_KEY, ELEVENLABS_KEY.\n');
     console.error('  1. Copy your key from https://elevenlabs.io/app/settings/api-keys');
     console.error('  2. Add it to .env:  ELEVENLABS_API_KEY=your-key-here');
     console.error('  3. Re-run:          node scripts/generate-audio.js\n');
