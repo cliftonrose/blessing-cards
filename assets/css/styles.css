@@ -267,8 +267,8 @@ body {
   font-family: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
   font-style: italic;
   font-weight: 300;
-  font-size: clamp(0.985rem, 3.9vw, 1.135rem);
-  line-height: 1.62;
+  font-size: clamp(1.075rem, 4.3vw, 1.26rem);
+  line-height: 1.58;
   color: var(--ink-soft);
   text-wrap: pretty;
 }
