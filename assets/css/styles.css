@@ -30,6 +30,9 @@
   --card-w: min(clamp(19rem, 92vw, 30rem), 92vw);
 
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Set by app.js on short viewports so the buttons stay above the fold. */
+  --card-scale: 1;
 }
 
 *,
@@ -206,7 +209,10 @@ body {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
-  padding: clamp(2.1rem, 8vw, 3rem) clamp(1.5rem, 7vw, 2.75rem) clamp(1.7rem, 6vw, 2.35rem);
+  padding:
+    calc(clamp(2.1rem, 8vw, 3rem) * var(--card-scale))
+    clamp(1.5rem, 7vw, 2.75rem)
+    calc(clamp(1.7rem, 6vw, 2.35rem) * var(--card-scale));
   text-align: center;
 }
 
@@ -223,9 +229,9 @@ body {
 /* Seal */
 .seal {
   display: block;
-  width: clamp(2.6rem, 11vw, 3.15rem);
+  width: calc(clamp(2.6rem, 11vw, 3.15rem) * var(--card-scale));
   height: auto;
-  margin: 0 auto clamp(1.15rem, 4vw, 1.5rem);
+  margin: 0 auto calc(clamp(1.15rem, 4vw, 1.5rem) * var(--card-scale));
   color: var(--gold);
 }
 
@@ -233,7 +239,7 @@ body {
 
 /* Eyebrow */
 .card__eyebrow {
-  margin: 0 0 clamp(0.9rem, 3.5vw, 1.15rem);
+  margin: 0 0 calc(clamp(0.9rem, 3.5vw, 1.15rem) * var(--card-scale));
   opacity: 0;
   font-size: 0.62rem;
   font-weight: 400;
@@ -248,7 +254,7 @@ body {
   margin: 0;
   font-family: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
   font-weight: 400;
-  font-size: clamp(1.72rem, 7.4vw, 2.5rem);
+  font-size: calc(clamp(1.72rem, 7.4vw, 2.5rem) * var(--card-scale));
   line-height: 1.16;
   letter-spacing: 0.002em;
   color: var(--ink);
@@ -270,7 +276,9 @@ body {
 .card__rule {
   width: clamp(3.4rem, 16vw, 4.6rem);
   height: 1px;
-  margin: clamp(1.15rem, 4.5vw, 1.6rem) auto clamp(1.1rem, 4vw, 1.45rem);
+  margin:
+    calc(clamp(1.15rem, 4.5vw, 1.6rem) * var(--card-scale)) auto
+    calc(clamp(1.1rem, 4vw, 1.45rem) * var(--card-scale));
   transform: scaleX(0);
   background: linear-gradient(90deg,
     transparent, var(--gold-dim) 22%, var(--gold) 50%, var(--gold-dim) 78%, transparent);
@@ -282,7 +290,7 @@ body {
   font-family: 'Cormorant Garamond', 'Iowan Old Style', Georgia, serif;
   font-style: italic;
   font-weight: 300;
-  font-size: clamp(1.075rem, 4.3vw, 1.26rem);
+  font-size: calc(clamp(1.075rem, 4.3vw, 1.26rem) * var(--card-scale));
   line-height: 1.58;
   color: var(--ink-soft);
   text-wrap: pretty;
@@ -293,7 +301,7 @@ body {
 /* Reference */
 .card__ref {
   display: block;
-  margin-top: clamp(1.1rem, 4vw, 1.4rem);
+  margin-top: calc(clamp(1.1rem, 4vw, 1.4rem) * var(--card-scale));
   opacity: 0;
   font-size: 0.635rem;
   font-style: normal;
@@ -313,7 +321,7 @@ body {
   justify-content: center;
   width: 2.85rem;
   height: 2.85rem;
-  margin: clamp(1.15rem, 4vw, 1.45rem) auto 0;
+  margin: calc(clamp(1.15rem, 4vw, 1.45rem) * var(--card-scale)) auto 0;
   padding: 0;
   border: 0;
   border-radius: 50%;
@@ -398,7 +406,7 @@ body {
   display: block;
   width: clamp(7.5rem, 34vw, 9.5rem);
   height: auto;
-  margin: clamp(1.35rem, 5vw, 1.75rem) auto 0;
+  margin: calc(clamp(1.35rem, 5vw, 1.75rem) * var(--card-scale)) auto 0;
   color: var(--gold-dim);
 }
 
@@ -529,6 +537,35 @@ body {
 @media (min-width: 48rem) {
   .shell { gap: 1.75rem; padding-top: 2.4rem; padding-bottom: 2rem; }
   .stage { gap: 2.4rem; }
+}
+
+/* Narrow screens: keep the two controls on one row. Wrapping costs a whole
+   row of height, which comes straight out of the card's type budget. */
+@media (max-width: 24rem) {
+  .actions { gap: 0.45rem; flex-wrap: nowrap; }
+
+  .btn {
+    padding: 0 1.05rem;
+    font-size: 0.66rem;
+    letter-spacing: 0.13em;
+    text-indent: 0.13em;
+  }
+}
+
+/* Short screens: reclaim height from the furniture around the card first, so
+   the card's own type has to give up as little as possible. */
+@media (max-height: 46rem) {
+  .shell {
+    gap: 0.75rem;
+    padding:
+      calc(0.9rem + env(safe-area-inset-top)) 1.15rem
+      calc(0.9rem + env(safe-area-inset-bottom));
+  }
+
+  .stage { gap: 1.15rem; }
+
+  /* The scripture credit stays; the sentiment can go. */
+  .foot__line--dim { display: none; }
 }
 
 /* Short landscape phones: keep everything on one screen */

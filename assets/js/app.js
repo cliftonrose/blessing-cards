@@ -219,18 +219,90 @@
   }
 
   var fittedWidth = 0;
+  var fittedHeight = 0;
 
-  /* Only refit when the width actually changes. That makes this cheap to call
-     often, and stops the height we set from retriggering the observer below. */
+  /* How much vertical room is left for the card once the brand, controls,
+     footer, padding and gaps have taken their share. Summed explicitly rather
+     than derived from the shell, whose min-height of 100svh would overstate the
+     furniture whenever the content is shorter than the screen. */
+  function roomForCard() {
+    var shell = document.querySelector('.shell');
+    var stage = document.querySelector('.stage');
+    if (!shell || !stage) return 0;
+
+    var s = getComputedStyle(shell);
+    var chrome =
+      parseFloat(s.paddingTop) + parseFloat(s.paddingBottom) +
+      (parseFloat(s.rowGap) || 0) * 2 +
+      (parseFloat(getComputedStyle(stage).rowGap) || 0) +
+      el.brand.offsetHeight +
+      el.actions.offsetHeight +
+      el.foot.offsetHeight;
+
+    return window.innerHeight - chrome - 8; /* a hair of breathing room */
+  }
+
+  /* Shrink the card's vertical rhythm only as far as it takes to keep the
+     controls on screen. Below this the type stops being comfortable, and
+     scrolling is the better trade. */
+  var MIN_CARD_SCALE = 0.8;
+
+  function setCardScale(v) {
+    el.root.style.setProperty('--card-scale', String(v));
+  }
+
+  /* Only refit when the width or viewport height actually changes. That makes
+     this cheap to call often, and stops the height we set from retriggering the
+     observer below. */
   function fitCard() {
     var w = Math.round(el.card.getBoundingClientRect().width);
-    if (!w || w === fittedWidth) return;
+    var vh = window.innerHeight;
+    if (!w) return;
+    if (w === fittedWidth && Math.abs(vh - fittedHeight) < 40) return;
 
-    var h = tallestCard();
-    if (h > 0) {
-      el.card.style.minHeight = h + 'px';
-      fittedWidth = w;
+    setCardScale(1);
+    el.card.style.minHeight = '';
+
+    var room = roomForCard();
+    var tallest = tallestCard();
+    if (!tallest) return;
+
+    /* Full size if it already fits. Otherwise bisect for the largest scale that
+       does. Stepping down proportionally overshoots badly — shrinking type by 2%
+       can drop a whole line of wrap, cutting far more height than asked for — so
+       searching keeps the type as large as the space genuinely allows. */
+    if (room > 0 && tallest > room) {
+      var lo = MIN_CARD_SCALE;
+      var hi = 1;
+      var best = 0;
+      var bestHeight = 0;
+
+      for (var i = 0; i < 6; i++) {
+        var mid = (lo + hi) / 2;
+        setCardScale(mid);
+        var h = tallestCard();
+        if (h <= room) {
+          best = mid;
+          bestHeight = h;
+          lo = mid;
+        } else {
+          hi = mid;
+        }
+      }
+
+      if (best) {
+        setCardScale(best);
+        tallest = bestHeight;
+      } else {
+        /* Even the floor does not fit; take it and let the page scroll. */
+        setCardScale(MIN_CARD_SCALE);
+        tallest = tallestCard();
+      }
     }
+
+    el.card.style.minHeight = tallest + 'px';
+    fittedWidth = w;
+    fittedHeight = vh;
   }
 
   /* The card can have no width yet when boot runs — a hidden tab, or layout
@@ -240,16 +312,20 @@
   function watchCardWidth() {
     fitCard();
 
+    var refit;
+    var later = function () {
+      clearTimeout(refit);
+      refit = setTimeout(fitCard, 180);
+    };
+
     if (typeof ResizeObserver === 'function') {
-      new ResizeObserver(fitCard).observe(el.card);
-      return;
+      new ResizeObserver(later).observe(el.card);
     }
 
-    var refit;
-    window.addEventListener('resize', function () {
-      clearTimeout(refit);
-      refit = setTimeout(fitCard, 200);
-    });
+    /* Viewport height changes on its own when a mobile URL bar shows or hides,
+       which the card observer never sees. */
+    window.addEventListener('resize', later);
+    if (window.visualViewport) window.visualViewport.addEventListener('resize', later);
   }
 
   /* ---------- motion ---------- */
