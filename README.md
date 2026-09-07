@@ -88,3 +88,10 @@ Pushing to `main` publishes automatically via GitHub Pages.
 
 `publish.sh` reads `GITHUB_USER` and `GITHUB_API_TOKEN` from `.env`, which is
 gitignored and must never be committed.
+
+## A note on caching
+
+GitHub Pages serves assets with `max-age=600`, so a returning visitor can sit on a
+stale stylesheet for ten minutes after a deploy. `publish.sh` re-stamps the `?v=`
+query on `index.html`'s asset links each run, so every release is picked up
+immediately.

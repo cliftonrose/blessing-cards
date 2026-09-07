@@ -13,6 +13,13 @@ set -a; . <(tr -d '\r' < .env); set +a
 REPO="${REPO:-blessing-cards}"
 MSG="${1:-Update blessing cards}"
 
+# GitHub Pages serves assets with max-age=600, so a returning visitor can sit on
+# a stale stylesheet for ten minutes after a deploy. Re-stamp ?v= on every
+# publish so each release fetches fresh files immediately.
+STAMP="$(date +%Y%m%d%H%M%S)"
+sed -i -E "s|(assets/(css\|js)/[a-z]+\.(css\|js))\?v=[0-9]+|\1?v=${STAMP}|g" index.html
+echo "Asset version: ${STAMP}"
+
 git add -A
 if git diff --cached --quiet; then
   echo "Nothing to commit."
