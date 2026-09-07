@@ -111,8 +111,9 @@
   /* One narration for the whole page, hidden unless it has been recorded. */
   function initListen() {
     var button = document.getElementById('listen');
+    var block = document.getElementById('listen-block');
     var audio = window.BLESSING_AUDIO;
-    if (!button || !audio || !audio.gospel || !window.createListenPlayer) return;
+    if (!button || !block || !audio || !audio.gospel || !window.createListenPlayer) return;
 
     var player = window.createListenPlayer({
       button: button,
@@ -123,7 +124,7 @@
     });
     if (!player) return;
 
-    button.hidden = false;
+    block.hidden = false;
     button.addEventListener('click', function () {
       player.toggle(audio.dir + 'gospel' + audio.ext, 'gospel');
     });

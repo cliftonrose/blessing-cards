@@ -18,7 +18,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Jost:wght@300;400;500&display=swap">
-<link rel="stylesheet" href="assets/css/styles.css?v=20260907184507">
+<link rel="stylesheet" href="assets/css/styles.css?v=20260907185016">
 </head>
 <body class="page-gospel">
 
@@ -66,18 +66,26 @@
 
         <h1 class="sheet__hero reveal">You are deeply loved by God.</h1>
 
-        <!-- Hidden until the manifest says the narration exists. -->
-        <button class="listen reveal" id="listen" type="button" hidden
-                aria-label="Listen to this page" aria-pressed="false">
-          <svg class="listen__ring" viewBox="0 0 48 48" aria-hidden="true">
-            <circle class="listen__track" cx="24" cy="24" r="22"/>
-            <circle class="listen__bar" id="listen-bar" cx="24" cy="24" r="22"/>
-          </svg>
-          <svg class="listen__glyph" viewBox="0 0 24 24" aria-hidden="true">
-            <path class="listen__play" d="M9.6 7.4 17 12l-7.4 4.6z"/>
-            <path class="listen__pause" d="M9.8 7.6v8.8M14.2 7.6v8.8"/>
-          </svg>
-        </button>
+        <!-- Kept at the top: this page runs well past one screen, so a control
+             below the fold would never be found. Hidden until the manifest says
+             the narration exists. Nothing plays until it is pressed. -->
+        <div class="listen-block reveal" id="listen-block" hidden>
+          <button class="listen" id="listen" type="button"
+                  aria-label="Listen to this page" aria-pressed="false">
+            <svg class="listen__ring" viewBox="0 0 48 48" aria-hidden="true">
+              <circle class="listen__track" cx="24" cy="24" r="22"/>
+              <circle class="listen__bar" id="listen-bar" cx="24" cy="24" r="22"/>
+            </svg>
+            <svg class="listen__glyph" viewBox="0 0 24 24" aria-hidden="true">
+              <path class="listen__play" d="M9.6 7.4 17 12l-7.4 4.6z"/>
+              <path class="listen__pause" d="M9.8 7.6v8.8M14.2 7.6v8.8"/>
+            </svg>
+          </button>
+          <span class="listen-block__caption" aria-hidden="true">
+            <span class="listen-block__cap listen-block__cap--play">Listen</span>
+            <span class="listen-block__cap listen-block__cap--pause">Playing</span>
+          </span>
+        </div>
 
         <div class="card__rule reveal" aria-hidden="true"></div>
 
@@ -163,9 +171,9 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
-<script src="assets/js/player.js?v=20260907184507"></script>
-<script src="assets/audio/manifest.js?v=20260907184507"></script>
-<script src="assets/js/ambient.js?v=20260907184507"></script>
-<script src="assets/js/gospel.js?v=20260907184507"></script>
+<script src="assets/js/player.js?v=20260907185016"></script>
+<script src="assets/audio/manifest.js?v=20260907185016"></script>
+<script src="assets/js/ambient.js?v=20260907185016"></script>
+<script src="assets/js/gospel.js?v=20260907185016"></script>
 </body>
 </html>

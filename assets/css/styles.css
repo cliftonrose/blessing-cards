@@ -733,3 +733,33 @@ body {
   outline: 2px solid var(--gold-bright);
   outline-offset: 3px;
 }
+
+/* ---------- Listen control on the Good News page ---------- */
+
+/* A bare circle is easy to miss at the head of a long read, so the control
+   carries a word. State comes from the button's class, so the caption cannot
+   drift out of step with what the player is doing. */
+.listen-block {
+  margin: clamp(1.2rem, 4vw, 1.6rem) auto 0;
+  text-align: center;
+}
+
+.listen-block[hidden] { display: none; }
+
+.listen-block .listen { margin: 0 auto; }
+
+.listen-block__caption {
+  display: block;
+  margin-top: 0.55rem;
+  font-size: 0.6rem;
+  font-weight: 400;
+  letter-spacing: 0.26em;
+  text-indent: 0.26em;
+  text-transform: uppercase;
+  color: var(--gold);
+}
+
+.listen-block__cap--pause { display: none; }
+
+.listen-block .listen.is-playing ~ .listen-block__caption .listen-block__cap--play { display: none; }
+.listen-block .listen.is-playing ~ .listen-block__caption .listen-block__cap--pause { display: inline; }
