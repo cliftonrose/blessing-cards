@@ -18,6 +18,7 @@ Static site — no framework, no runtime dependencies, nothing to install to dep
 | `gospel.html` | The Good News — a long read on one sheet |
 | `assets/js/ambient.js` | Shared background: drifting motes, the rAF probe |
 | `assets/js/gospel.js` | Reveals the Good News as you scroll to it |
+| `assets/js/player.js` | Shared listen button: one audio element, ring, fade |
 | `assets/css/styles.css` | The look — parchment card, gold rules, paper grain, dark room |
 | `assets/js/blessings.js` | The content — 48 blessings (affirmation + verse + reference) |
 | `assets/js/app.js` | Selection, motion, playback, sharing |
@@ -146,6 +147,14 @@ an interrupted run still leaves the page consistent.
 
 Audio only ever starts on a press — nothing autoplays — and playback stops when the
 reader draws another blessing.
+
+### The Good News narration
+
+The Good News page has its own recording, listed in the manifest as `gospel: true`
+and produced by the same run. Its words are **parsed out of `gospel.html`** rather
+than kept as a second copy, so editing the page and re-running with `--force --only
+gospel` is enough to keep the recording matching what is on screen. If the markup
+ever changes shape the parser fails loudly instead of recording a half-empty script.
 
 ## Motion
 

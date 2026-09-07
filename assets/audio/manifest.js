@@ -8,6 +8,7 @@
 window.BLESSING_AUDIO = {
   dir: "assets/audio/",
   ext: ".mp3",
+  gospel: true,
   ids: [
     "wonderfully-made",
     "plans-for-you",

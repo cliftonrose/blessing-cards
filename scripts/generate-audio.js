@@ -20,6 +20,8 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const AUDIO_DIR = path.join(ROOT, 'assets', 'audio');
 const MANIFEST = path.join(AUDIO_DIR, 'manifest.js');
+const GOSPEL_PAGE = path.join(ROOT, 'gospel.html');
+const GOSPEL_ID = 'gospel';
 
 const VOICE_NAME = process.env.ELEVENLABS_VOICE_NAME || 'Ash';
 const MODEL_ID = process.env.ELEVENLABS_MODEL_ID || 'eleven_v3';
@@ -72,6 +74,62 @@ function speakableRef(ref) {
   return out.replace(/(\d+):(\d+)(?:-(\d+))?$/, (m, chapter, from, to) =>
     to ? `${chapter}, verses ${from} to ${to}` : `${chapter}, verse ${from}`
   );
+}
+
+function decode(html) {
+  return html
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&[a-z]+;/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+/* Build the Good News narration from gospel.html rather than a second copy of
+   the text, so editing the page is enough to keep the recording honest. */
+function gospelScript() {
+  const html = fs.readFileSync(GOSPEL_PAGE, 'utf8');
+  const from = html.indexOf('<div class="sheet__body">');
+  const to = html.indexOf('</article>');
+  if (from === -1 || to === -1) throw new Error('Could not find the sheet body in gospel.html');
+
+  const body = html.slice(from, to);
+  const re = /<(h1|p|cite)[^>]*class="([^"]*)"[^>]*>([\s\S]*?)<\/\1>/g;
+  const parts = [];
+  let m;
+
+  while ((m = re.exec(body)) !== null) {
+    const cls = m[2];
+    const text = decode(m[3]);
+    if (!text) continue;
+    if (/sheet__hero/.test(cls)) parts.push({ kind: 'hero', text: text });
+    else if (/sheet__text/.test(cls)) parts.push({ kind: 'prose', text: text });
+    else if (/passage__text/.test(cls)) parts.push({ kind: 'quote', text: text });
+    else if (/passage__ref/.test(cls)) parts.push({ kind: 'ref', text: text });
+  }
+
+  const heroes = parts.filter((p) => p.kind === 'hero').length;
+  const quotes = parts.filter((p) => p.kind === 'quote').length;
+  if (!heroes || !quotes) {
+    throw new Error('Parsed gospel.html but found no hero or passages; the markup may have changed.');
+  }
+
+  return parts.map(function (p, i) {
+    const last = i === parts.length - 1;
+    if (p.kind === 'ref') {
+      return speakableRef(p.text) + (last ? '' : '<break time="1.2s" />');
+    }
+    if (p.kind === 'quote') {
+      const text = /[.!?]$/.test(p.text) ? p.text : p.text + '.';
+      return text + '<break time="0.6s" />';
+    }
+    return p.text + (last ? '' : '<break time="1.0s" />');
+  }).join('');
 }
 
 function script(b) {
@@ -198,6 +256,7 @@ function writeManifest(ids) {
     'window.BLESSING_AUDIO = {',
     '  dir: "assets/audio/",',
     '  ext: ' + JSON.stringify(EXT) + ',',
+    '  gospel: ' + fs.existsSync(path.join(AUDIO_DIR, GOSPEL_ID + EXT)) + ',',
     '  ids: [',
     ids.map((id) => '    ' + JSON.stringify(id)).join(',\n'),
     '  ]',
@@ -257,30 +316,36 @@ async function main() {
     return;
   }
 
-  const todo = all.filter((b) => {
-    if (only && !only.has(b.id)) return false;
+  /* The Good News narration is just another recording, drawn from the page
+     rather than from a blessing entry. */
+  const jobs = all
+    .map((b) => ({ id: b.id, text: script(b) }))
+    .concat([{ id: GOSPEL_ID, text: gospelScript() }]);
+
+  const todo = jobs.filter((j) => {
+    if (only && !only.has(j.id)) return false;
     if (force) return true;
-    return !fs.existsSync(path.join(AUDIO_DIR, b.id + EXT));
+    return !fs.existsSync(path.join(AUDIO_DIR, j.id + EXT));
   });
 
   if (!todo.length) {
-    console.log('Every blessing already has a recording. Use --force to re-record.\n');
+    console.log('Everything already has a recording. Use --force to re-record.\n');
     writeManifest(recordedIds(all));
     return;
   }
 
-  console.log('Recording ' + todo.length + ' of ' + all.length + ' blessings...\n');
+  console.log('Recording ' + todo.length + ' of ' + jobs.length + '...\n');
 
   let bytes = 0;
   for (let i = 0; i < todo.length; i++) {
-    const b = todo[i];
-    const audio = await speak(script(b), voice.voice_id, key);
-    fs.writeFileSync(path.join(AUDIO_DIR, b.id + EXT), audio);
+    const job = todo[i];
+    const audio = await speak(job.text, voice.voice_id, key);
+    fs.writeFileSync(path.join(AUDIO_DIR, job.id + EXT), audio);
     bytes += audio.length;
 
     console.log(
       String(i + 1).padStart(3) + '/' + todo.length + '  ' +
-      b.id.padEnd(26) + (audio.length / 1024).toFixed(0).padStart(5) + ' KB'
+      job.id.padEnd(26) + (audio.length / 1024).toFixed(0).padStart(5) + ' KB'
     );
 
     /* Manifest is rewritten as we go, so an interrupted run still leaves the
@@ -292,7 +357,8 @@ async function main() {
 
   const done = recordedIds(all);
   console.log('\nWrote ' + todo.length + ' files (' + (bytes / 1048576).toFixed(1) + ' MB this run).');
-  console.log('Recorded: ' + done.length + ' of ' + all.length + '.');
+  console.log('Blessings recorded: ' + done.length + ' of ' + all.length + '.');
+  console.log('Good News recorded: ' + fs.existsSync(path.join(AUDIO_DIR, GOSPEL_ID + EXT)) + '.');
   console.log('\nNext:  ./publish.sh "Add spoken blessings"\n');
 }
 

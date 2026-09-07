@@ -108,9 +108,31 @@
     }, 6000);
   }
 
+  /* One narration for the whole page, hidden unless it has been recorded. */
+  function initListen() {
+    var button = document.getElementById('listen');
+    var audio = window.BLESSING_AUDIO;
+    if (!button || !audio || !audio.gospel || !window.createListenPlayer) return;
+
+    var player = window.createListenPlayer({
+      button: button,
+      bar: document.getElementById('listen-bar'),
+      toast: toast,
+      playLabel: 'Listen to this page',
+      pauseLabel: 'Pause'
+    });
+    if (!player) return;
+
+    button.hidden = false;
+    button.addEventListener('click', function () {
+      player.toggle(audio.dir + 'gospel' + audio.ext, 'gospel');
+    });
+  }
+
   function boot() {
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
     initShare();
+    initListen();
 
     if (!hasAnime || reduced) {
       showAll();

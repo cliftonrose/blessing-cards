@@ -511,195 +511,31 @@
 
   /* ---------- listen ---------- */
 
-  var player = null;
-  var circumference = 0;
-  var audioState = 'idle';  /* idle | loading | playing */
-  var audioId = null;       /* which blessing the player currently holds */
-
-  /* The recordings end on a non-zero sample, which a media element clips off
-     abruptly — audible as a small pop on playback, though local players hide it
-     by draining their own buffer. Routing through a gain node lets us ramp to
-     silence just before the stream ends. `volume` would be simpler but is
-     read-only on iOS, so it is no use here. */
-  var FADE_OUT = 0.14;
-  var actx = null;
-  var gainNode = null;
-  var graphOff = false;
-
-  function prepareGraph(p) {
-    if (gainNode || graphOff) return;
-    var AC = window.AudioContext || window.webkitAudioContext;
-    if (!AC || !AC.prototype.createMediaElementSource) { graphOff = true; return; }
-
-    try {
-      actx = new AC();
-    } catch (e) {
-      graphOff = true;
-      return;
-    }
-
-    /* Only take over routing once the context is actually running. Connecting a
-       suspended context would silence playback entirely, which is far worse
-       than the pop we are removing. */
-    var connect = function () {
-      if (gainNode || actx.state !== 'running') return;
-      try {
-        gainNode = actx.createGain();
-        actx.createMediaElementSource(p).connect(gainNode);
-        gainNode.connect(actx.destination);
-      } catch (e) {
-        gainNode = null;
-        graphOff = true;
-      }
-    };
-
-    if (actx.state === 'running') connect();
-    else if (actx.resume) actx.resume().then(connect, function () { graphOff = true; });
-    else graphOff = true;
-  }
-
-  function scheduleFade() {
-    if (!gainNode || !player) return;
-    var d = player.duration;
-    if (!d || !isFinite(d)) return;
-
-    var rate = player.playbackRate || 1;
-    var remaining = (d - player.currentTime) / rate;
-    var now = actx.currentTime;
-    var start = now + Math.max(0, remaining - FADE_OUT);
-
-    gainNode.gain.cancelScheduledValues(now);
-    gainNode.gain.setValueAtTime(1, now);
-    gainNode.gain.setValueAtTime(1, start);
-    gainNode.gain.linearRampToValueAtTime(0.0001, start + FADE_OUT);
-  }
-
-  function clearFade() {
-    if (!gainNode) return;
-    gainNode.gain.cancelScheduledValues(actx.currentTime);
-    gainNode.gain.setValueAtTime(1, actx.currentTime);
-  }
+  var listenPlayer = null;
 
   function hasAudio(b) { return !!(b && HAS_AUDIO[b.id]); }
 
   function audioUrl(b) { return AUDIO.dir + b.id + AUDIO.ext; }
 
   function initListen() {
-    if (!el.listen || !el.listenBar) return;
-
-    /* Derive the dash length from the rendered radius so the ring stays exact
-       if the button is ever resized. */
-    var r = parseFloat(el.listenBar.getAttribute('r')) || 22;
-    circumference = 2 * Math.PI * r;
-    el.listenBar.style.strokeDasharray = circumference.toFixed(3);
-    setProgress(0);
-
+    if (!el.listen) return;
+    listenPlayer = window.createListenPlayer({
+      button: el.listen,
+      bar: el.listenBar,
+      toast: toast,
+      playLabel: 'Listen to this blessing',
+      pauseLabel: 'Pause this blessing'
+    });
     el.listen.addEventListener('click', toggleListen);
   }
 
-  function setProgress(fraction) {
-    if (!el.listenBar || !circumference) return;
-    var clamped = Math.max(0, Math.min(1, fraction || 0));
-    el.listenBar.style.strokeDashoffset = (circumference * (1 - clamped)).toFixed(3);
-  }
-
-  /* The button follows our own state, not the media element's flags: paused /
-     ended race with the events that set them, which left the button showing
-     "playing" after a pause. */
-  function setListenState(state) {
-    audioState = state;
-    if (!el.listen) return;
-    var playing = state === 'playing';
-    el.listen.classList.toggle('is-playing', playing);
-    el.listen.classList.toggle('is-loading', state === 'loading');
-    el.listen.setAttribute('aria-pressed', playing ? 'true' : 'false');
-    el.listen.setAttribute(
-      'aria-label',
-      playing ? 'Pause this blessing' : 'Listen to this blessing'
-    );
-  }
-
-  function ensurePlayer() {
-    if (player) return player;
-
-    player = new Audio();
-    player.preload = 'none';
-
-    player.addEventListener('playing', function () {
-      setListenState('playing');
-      scheduleFade();
-    });
-    player.addEventListener('loadedmetadata', scheduleFade);
-    player.addEventListener('seeked', scheduleFade);
-    player.addEventListener('waiting', function () { setListenState('loading'); });
-    player.addEventListener('pause', function () {
-      if (!player.ended) setListenState('idle');
-    });
-    player.addEventListener('timeupdate', function () {
-      if (audioState === 'idle') return;
-      if (player.duration && isFinite(player.duration)) {
-        setProgress(player.currentTime / player.duration);
-      }
-    });
-    /* No currentTime reset here: play() rewinds an ended element by itself, and
-       assigning currentTime fires a trailing timeupdate that redraws the ring
-       part-way round just after it was cleared. */
-    player.addEventListener('ended', function () {
-      setListenState('idle');
-      setProgress(0);
-    });
-    player.addEventListener('error', function () {
-      setListenState('idle');
-      setProgress(0);
-      toast('Recording unavailable');
-    });
-
-    return player;
+  function toggleListen() {
+    if (!listenPlayer || !current || !hasAudio(current)) return;
+    listenPlayer.toggle(audioUrl(current), current.id);
   }
 
   function stopAudio() {
-    if (player) {
-      player.pause();
-      clearFade();
-      /* Drop the source so a half-buffered file isn't left downloading. */
-      player.removeAttribute('src');
-      player.load();
-    }
-    audioId = null;
-    setListenState('idle');
-    setProgress(0);
-  }
-
-  function toggleListen() {
-    if (!current || !hasAudio(current)) return;
-
-    var p = ensurePlayer();
-
-    /* Anything but idle for this blessing means a press is a stop. */
-    if (audioState !== 'idle' && audioId === current.id) {
-      p.pause();
-      clearFade();
-      setListenState('idle');
-      return;
-    }
-
-    if (audioId !== current.id) {
-      p.src = audioUrl(current);
-      audioId = current.id;
-      setProgress(0);
-    }
-
-    prepareGraph(p);
-    clearFade();
-
-    setListenState('loading');
-    var attempt = p.play();
-    if (attempt && attempt.catch) {
-      attempt.catch(function () {
-        setListenState('idle');
-        setProgress(0);
-      });
-    }
+    if (listenPlayer) listenPlayer.stop();
   }
 
   function syncListen(b) {
