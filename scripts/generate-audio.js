@@ -20,7 +20,8 @@ const path = require('path');
 const ROOT = path.join(__dirname, '..');
 const AUDIO_DIR = path.join(ROOT, 'assets', 'audio');
 const MANIFEST = path.join(AUDIO_DIR, 'manifest.js');
-const GOSPEL_PAGE = path.join(ROOT, 'gospel.html');
+/* The Good News is a view on the main page now; gospel.html is only a redirect. */
+const GOSPEL_PAGE = path.join(ROOT, 'index.html');
 const GOSPEL_ID = 'gospel';
 
 const VOICE_NAME = process.env.ELEVENLABS_VOICE_NAME || 'Ash';
@@ -95,11 +96,17 @@ function decode(html) {
 function gospelScript() {
   const html = fs.readFileSync(GOSPEL_PAGE, 'utf8');
   const from = html.indexOf('<div class="sheet__body">');
-  const to = html.indexOf('</article>');
-  if (from === -1 || to === -1) throw new Error('Could not find the sheet body in gospel.html');
+  const to = from === -1 ? -1 : html.indexOf('</article>', from);
+  if (from === -1 || to === -1) {
+    throw new Error('Could not find the Good News sheet in ' + path.basename(GOSPEL_PAGE));
+  }
 
   const body = html.slice(from, to);
-  const re = /<(h1|p|cite)[^>]*class="([^"]*)"[^>]*>([\s\S]*?)<\/\1>/g;
+  /* The \s after the tag name matters: without it "<path class=..." in the SVGs
+     matched as a <p>, and the lazy scan on to the next real </p> swallowed a
+     whole paragraph of the page — which is how a recording went out missing
+     one. */
+  const re = /<(h1|p|cite)\s[^>]*class="([^"]*)"[^>]*>([\s\S]*?)<\/\1>/g;
   const parts = [];
   let m;
 
@@ -113,10 +120,29 @@ function gospelScript() {
     else if (/passage__ref/.test(cls)) parts.push({ kind: 'ref', text: text });
   }
 
-  const heroes = parts.filter((p) => p.kind === 'hero').length;
-  const quotes = parts.filter((p) => p.kind === 'quote').length;
-  if (!heroes || !quotes) {
-    throw new Error('Parsed gospel.html but found no hero or passages; the markup may have changed.');
+  /* Count what the markup actually contains and refuse to record anything that
+     does not account for all of it. A silently dropped paragraph is the one
+     failure here that nobody notices until they hear it. */
+  const count = (needle) => (body.match(new RegExp(needle, 'g')) || []).length;
+  const expected = {
+    hero: count('class="sheet__hero'),
+    prose: count('class="sheet__text'),
+    quote: count('class="passage__text'),
+    ref: count('class="passage__ref')
+  };
+
+  Object.keys(expected).forEach(function (kind) {
+    const got = parts.filter((p) => p.kind === kind).length;
+    if (got !== expected[kind]) {
+      throw new Error(
+        'Parsed ' + got + ' ' + kind + ' block(s) but the page has ' + expected[kind] + '.\n' +
+        'Refusing to record a narration that does not match what is on screen.'
+      );
+    }
+  });
+
+  if (!expected.hero || !expected.quote) {
+    throw new Error('Found no hero or passages in the Good News markup.');
   }
 
   return parts.map(function (p, i) {
