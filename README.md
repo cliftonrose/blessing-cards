@@ -10,14 +10,16 @@ illuminated card that assembles itself in front of them.
 
 ## How it works
 
-Static site — no build step, no framework, no dependencies to install. Three files do the work:
+Static site — no framework, no runtime dependencies, nothing to install to deploy.
 
 | File | Role |
 | --- | --- |
 | `index.html` | Structure: the card, the seal, the flourish, the controls |
 | `assets/css/styles.css` | The look — parchment card, gold rules, paper grain, dark room |
 | `assets/js/blessings.js` | The content — 48 blessings (affirmation + verse + reference) |
-| `assets/js/app.js` | Selection, motion, sharing |
+| `assets/js/app.js` | Selection, motion, playback, sharing |
+| `scripts/generate-audio.js` | Pre-records the blessings with ElevenLabs |
+| `assets/audio/` | The recordings, plus a generated manifest of what exists |
 
 [anime.js 3.2.2](https://animejs.com) is loaded from a CDN for the reveal timelines.
 
@@ -54,6 +56,53 @@ Each maps to an ambient hue in `THEMES` at the top of `app.js`.
 
 Scripture is quoted from the **King James Version** (public domain). The
 `affirmation` lines are original plain-language restatements, not quotations.
+
+## Spoken blessings
+
+Each blessing can be read aloud by a small play button on the card. Recordings are
+**pre-generated** with ElevenLabs and committed to `assets/audio/` — the page never calls
+a speech API, so there is no key in the browser, no per-play cost, and no latency beyond
+fetching one file.
+
+### Recording them
+
+1. Copy your key from <https://elevenlabs.io/app/settings/api-keys>.
+2. Add it to `.env` (gitignored):
+   ```
+   ELEVENLABS_API_KEY=your-key-here
+   ```
+3. Record:
+   ```bash
+   node scripts/generate-audio.js
+   ```
+
+Defaults to the **Ash** voice on **eleven_v3**. If your account has neither, the script
+stops and prints what it does have, so set `ELEVENLABS_VOICE_ID` or `ELEVENLABS_MODEL_ID`
+in `.env` to pick from that list.
+
+Useful flags:
+
+| Flag | Effect |
+| --- | --- |
+| *(none)* | Record only blessings that have no file yet |
+| `--force` | Re-record everything |
+| `--only id1,id2` | Record just those blessings |
+| `--list` | Show the voice, model and how many are recorded; write nothing |
+| `--script` | Print the exact words that would be spoken; write nothing |
+
+**Existing files are skipped by default, so re-running costs no credits.** Check
+`--script` before a first run — it shows how references are spoken (`1 Peter 5:7`
+becomes "First Peter 5, verse 7").
+
+### How the page knows what exists
+
+`scripts/generate-audio.js` writes `assets/audio/manifest.js` listing the recorded ids.
+The button is hidden for any blessing not in that list, so a partial set works fine and
+the page never requests a file that 404s. The manifest is rewritten after each file, so
+an interrupted run still leaves the page consistent.
+
+Audio only ever starts on a press — nothing autoplays — and playback stops when the
+reader draws another blessing.
 
 ## Motion
 

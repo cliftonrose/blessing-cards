@@ -289,6 +289,96 @@ body {
   color: var(--gold);
 }
 
+/* ---------- Listen ---------- */
+
+.listen {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.85rem;
+  height: 2.85rem;
+  margin: clamp(1.15rem, 4vw, 1.45rem) auto 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--gold);
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 300ms var(--ease-out), transform 260ms var(--ease-out);
+}
+
+/* inline-flex would otherwise beat the hidden attribute */
+.listen[hidden] { display: none; }
+
+.listen:hover { color: #8f6d1f; transform: scale(1.04); }
+.listen:active { transform: scale(0.97); }
+
+.listen:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.listen__ring {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* start the progress sweep at twelve o'clock */
+  transform: rotate(-90deg);
+  overflow: visible;
+}
+
+.listen__track,
+.listen__bar {
+  fill: none;
+  stroke-width: 1.25;
+}
+
+.listen__track { stroke: rgba(185, 143, 46, 0.28); }
+
+.listen__bar {
+  stroke: var(--gold);
+  stroke-linecap: round;
+  /* dasharray and offset are set from the real circumference in app.js */
+  transition: stroke-dashoffset 260ms linear;
+}
+
+.listen__glyph {
+  position: relative;
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.listen__play {
+  fill: currentColor;
+  stroke: none;
+}
+
+.listen__pause {
+  display: none;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+}
+
+.listen.is-playing .listen__play { display: none; }
+.listen.is-playing .listen__pause { display: block; }
+
+/* Waiting on the file: breathe rather than spin, to stay in keeping. */
+.listen.is-loading { animation: listen-pulse 1.1s ease-in-out infinite; }
+
+@keyframes listen-pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.42; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .listen.is-loading { animation: none; }
+}
+
 .flourish {
   display: block;
   width: clamp(7.5rem, 34vw, 9.5rem);

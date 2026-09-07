@@ -74,6 +74,19 @@
 
               <cite class="card__ref" id="ref"></cite>
 
+              <!-- Hidden until the manifest says this blessing has a recording. -->
+              <button class="listen" id="listen" type="button" hidden
+                      aria-label="Listen to this blessing" aria-pressed="false">
+                <svg class="listen__ring" viewBox="0 0 48 48" aria-hidden="true">
+                  <circle class="listen__track" cx="24" cy="24" r="22"/>
+                  <circle class="listen__bar" id="listen-bar" cx="24" cy="24" r="22"/>
+                </svg>
+                <svg class="listen__glyph" viewBox="0 0 24 24" aria-hidden="true">
+                  <path class="listen__play" d="M9.6 7.4 17 12l-7.4 4.6z"/>
+                  <path class="listen__pause" d="M9.8 7.6v8.8M14.2 7.6v8.8"/>
+                </svg>
+              </button>
+
               <svg class="flourish" id="flourish" viewBox="0 0 200 20" aria-hidden="true">
                 <g fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round">
                   <path d="M14 10h64"/>
@@ -116,6 +129,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
 <script src="assets/js/blessings.js?v=20260907170632"></script>
+<script src="assets/audio/manifest.js?v=20260907170632"></script>
 <script src="assets/js/app.js?v=20260907170632"></script>
 </body>
 </html>
