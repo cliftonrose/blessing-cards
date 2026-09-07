@@ -386,24 +386,11 @@ body {
 }
 
 .foot__line--dim {
-  color: rgba(207, 198, 184, 0.30);
+  margin-top: 0.3rem;
+  color: rgba(207, 198, 184, 0.24);
   font-style: italic;
   letter-spacing: 0.1em;
 }
-
-/* Publisher credit. Legal text, so it is set plainly rather than letterspaced,
-   and kept quiet enough not to compete with the card. */
-.foot__notice {
-  max-width: 32rem;
-  margin: 0.75rem auto 0;
-  font-size: 0.545rem;
-  line-height: 1.62;
-  letter-spacing: 0.01em;
-  color: rgba(207, 198, 184, 0.20);
-  text-wrap: pretty;
-}
-
-.foot__notice:empty { display: none; }
 
 /* ---------- Toast ---------- */
 
