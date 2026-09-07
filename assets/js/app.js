@@ -40,8 +40,13 @@
     foot:        document.querySelector('.foot'),
     btnNew:      document.getElementById('btn-new'),
     btnShare:    document.getElementById('btn-share'),
+    notice:      document.getElementById('notice'),
     toast:       document.getElementById('toast')
   };
+
+  /* Publisher credit travels with the verse data, so switching translation
+     can never leave the wrong attribution on the page. */
+  var TEXT = window.BLESSING_TEXT || {};
 
   var current = null;
   var busy = false;
@@ -379,7 +384,8 @@
   }
 
   function shareText() {
-    return current.affirmation + '\n\n“' + current.verse + '”\n— ' + current.ref;
+    var cite = current.ref + (TEXT.translation ? ' (' + TEXT.translation + ')' : '');
+    return current.affirmation + '\n\n“' + current.verse + '”\n— ' + cite;
   }
 
   function shareUrl() {
@@ -561,6 +567,8 @@
     /* A scan should always land at the top of the card, never on a restored
        scroll position from a previous visit. */
     if ('scrollRestoration' in history) history.scrollRestoration = 'manual';
+
+    if (el.notice && TEXT.notice) el.notice.textContent = TEXT.notice;
 
     var q = fromQuery();
     var start = q ? q.blessing : randomOther(null);

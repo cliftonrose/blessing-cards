@@ -7,6 +7,12 @@
  *
  * `theme` drives the ambient colour of the page. See THEMES in app.js.
  */
+window.BLESSING_TEXT = {
+  "translation": "KJV",
+  "name": "King James Version",
+  "notice": "Scripture quoted from the King James Version (public domain)."
+};
+
 window.BLESSINGS = [
   {
     id: 'wonderfully-made',
